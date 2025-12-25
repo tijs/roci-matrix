@@ -18,9 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bidirectional IPC communication with roci-agent
 - IPC client to `/var/run/roci/agent.sock`
 - IPC server on `/var/run/roci/matrix.sock` for proactive messages
-- Manual device verification via Element
+- Manual device verification via Element (one-time setup)
 - Systemd service configuration
 - Comprehensive README and CLAUDE.md documentation
+- Added node_modules/ to .gitignore
 
 ### Changed
 
@@ -29,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authentication: Password login per session → persistent access token
 - Encryption storage: Olm → Rust SDK Sled database
 - New device (old messages won't decrypt from Python version)
+- Simplified device verification to manual-only (matrix-bot-sdk doesn't expose SAS APIs)
+
+### Fixed
+
+- Removed 10,530 node_modules files from git tracking
 
 ### Technical Details
 
