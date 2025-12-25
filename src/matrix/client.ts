@@ -1,0 +1,148 @@
+/**
+ * Matrix Client setup
+ * Initializes Matrix client with E2E encryption
+ */
+
+import {
+  MatrixClient,
+  RustSdkCryptoStorageProvider,
+  SimpleFsStorageProvider,
+} from 'matrix-bot-sdk';
+import type { Config } from '../types.ts';
+import * as logger from '../utils/logger.ts';
+
+/**
+ * Create and initialize Matrix client
+ */
+export function createMatrixClient(config: Config): MatrixClient {
+  logger.info('Initializing Matrix client...');
+
+  try {
+    // Client state storage (sync state, etc.)
+    const clientStorage = new SimpleFsStorageProvider(`${config.storeDir}/client-state.json`);
+
+    // E2E encryption storage (Rust SDK)
+    // StoreType.Sled = 1 (file-based key-value store)
+    const cryptoStorage = new RustSdkCryptoStorageProvider(
+      `${config.storeDir}/crypto-sled`,
+      1, // StoreType.Sled
+    );
+
+    // Create client
+    const client = new MatrixClient(
+      config.homeserverUrl,
+      config.accessToken,
+      clientStorage,
+      cryptoStorage,
+    );
+
+    // Set device ID (must match the one from login)
+    // @ts-ignore: deviceId property exists but may not be in types
+    client.deviceId = config.deviceId;
+
+    logger.success(`Matrix client initialized for ${config.userId}`);
+    logger.info(`Device ID: ${config.deviceId}`);
+
+    return client;
+  } catch (error) {
+    logger.error('Failed to initialize Matrix client', error);
+    throw error;
+  }
+}
+
+/**
+ * Start Matrix client sync
+ */
+export async function startClient(client: MatrixClient): Promise<void> {
+  try {
+    logger.info('Starting Matrix client sync...');
+
+    // Start the client (begins sync loop)
+    await client.start();
+
+    logger.success('Matrix client started and syncing');
+  } catch (error) {
+    logger.error('Failed to start Matrix client', error);
+    throw error;
+  }
+}
+
+/**
+ * Get room information
+ */
+export async function getRoomInfo(
+  client: MatrixClient,
+  roomId: string,
+): Promise<{ memberCount: number; encrypted: boolean }> {
+  try {
+    // Get joined members
+    const members = await client.getJoinedRoomMembers(roomId);
+    const memberCount = Object.keys(members).length;
+
+    // Check if room is encrypted
+    let encrypted = false;
+    try {
+      const state = await client.getRoomStateEvent(
+        roomId,
+        'm.room.encryption',
+        '',
+      );
+      encrypted = state !== null;
+    } catch {
+      // Not encrypted
+      encrypted = false;
+    }
+
+    return { memberCount, encrypted };
+  } catch (error) {
+    logger.error(`Failed to get room info for ${roomId}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Send text message to room
+ */
+export async function sendTextMessage(
+  client: MatrixClient,
+  roomId: string,
+  text: string,
+): Promise<string> {
+  try {
+    const eventId = await client.sendText(roomId, text);
+    return eventId;
+  } catch (error) {
+    logger.error(`Failed to send message to ${roomId}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Send reaction to a message
+ */
+export async function sendReaction(
+  client: MatrixClient,
+  roomId: string,
+  eventId: string,
+  emoji: string,
+): Promise<void> {
+  try {
+    await client.sendEvent(roomId, 'm.reaction', {
+      'm.relates_to': {
+        rel_type: 'm.annotation',
+        event_id: eventId,
+        key: emoji,
+      },
+    });
+  } catch (error) {
+    logger.error(`Failed to send reaction to ${eventId}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get user ID from client
+ */
+export async function getUserId(client: MatrixClient): Promise<string> {
+  return await client.getUserId();
+}

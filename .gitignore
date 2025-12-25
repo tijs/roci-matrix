@@ -1,0 +1,15 @@
+# Deno
+deno.lock
+
+# Environment
+.env
+
+# Storage (E2E encryption keys)
+store/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,33 @@
+[Unit]
+Description=Roci Matrix Service (Deno)
+After=network-online.target roci-agent.service
+Requires=roci-agent.service
+
+[Service]
+Type=simple
+User=tijs
+WorkingDirectory=/home/tijs/roci/roci-matrix
+EnvironmentFile=/home/tijs/roci/roci-matrix/.env
+ExecStart=/home/tijs/.deno/bin/deno task start
+
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=roci-matrix
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=50%
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/tijs/roci/roci-matrix/store
+ReadWritePaths=/var/run/roci
+
+[Install]
+WantedBy=multi-user.target
