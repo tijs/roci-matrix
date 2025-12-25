@@ -5,6 +5,7 @@
 import { loadConfig } from './config.ts';
 import { createMatrixClient, sendTextMessage, startClient } from './matrix/client.ts';
 import { setupEncryptionListeners, verifyEncryption } from './matrix/crypto.ts';
+import { setupAutoVerification } from './matrix/verification.ts';
 import { AgentIPCClient } from './ipc/agent-client.ts';
 import { MatrixIPCServer } from './ipc/matrix-server.ts';
 import { handleTextMessage } from './handlers/message.ts';
@@ -31,6 +32,9 @@ async function main() {
 
     // Set up encryption listeners
     setupEncryptionListeners(client);
+
+    // Set up auto-verification for own devices
+    setupAutoVerification(client, config);
 
     // Verify encryption is available
     verifyEncryption(client);
