@@ -99,7 +99,36 @@ deno task test
 
 ## Deployment
 
-See parent repository [roci](https://github.com/tijs/roci) for deployment scripts and systemd service configuration.
+This service uses semantic versioning with git tags for releases.
+
+### Quick Deploy (Latest)
+
+```bash
+# From parent roci/ directory
+./scripts/deploy.sh matrix
+./scripts/restart.sh matrix
+```
+
+### Versioned Deploy
+
+```bash
+# On VPS, checkout specific version
+ssh roci 'cd ~/roci/roci-matrix && git fetch --tags && git checkout v1.0.0'
+
+# Restart service
+./scripts/restart.sh matrix
+```
+
+### Release Process
+
+1. Update `CHANGELOG.md` with changes
+2. Update version in `deno.json`
+3. Commit changes
+4. Create git tag: `git tag v1.x.x`
+5. Push: `git push && git push --tags`
+6. Create GitHub release
+
+See parent repository [roci](https://github.com/tijs/roci) for full deployment scripts and systemd service configuration.
 
 ## Development
 
