@@ -26,6 +26,26 @@ cp .env.example .env
 # Edit .env with actual credentials
 ```
 
+### Quality Checks (Required Before Deployment)
+
+All changes must pass quality checks before deployment:
+
+```bash
+# Format code (auto-fix)
+deno fmt
+
+# Lint check
+deno lint
+
+# Type check
+deno check src/**/*.ts tests/**/*.ts
+
+# Run tests
+deno test --allow-all
+```
+
+**These checks are enforced in the deployment workflow** - `./scripts/deploy.sh` runs them automatically.
+
 ### Running
 
 ```bash
