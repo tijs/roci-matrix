@@ -19,7 +19,9 @@ export function createMatrixClient(config: Config): MatrixClient {
 
   try {
     // Client state storage (sync state, etc.)
-    const clientStorage = new SimpleFsStorageProvider(`${config.storeDir}/client-state.json`);
+    const clientStorage = new SimpleFsStorageProvider(
+      `${config.storeDir}/client-state.json`,
+    );
 
     // E2E encryption storage (Rust SDK)
     // StoreType.Sled = 1 (file-based key-value store)

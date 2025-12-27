@@ -51,7 +51,10 @@ export function validateAuthorization(
   }
 
   if (roomMemberCount !== 2) {
-    return { authorized: false, reason: `non-DM room (${roomMemberCount} members)` };
+    return {
+      authorized: false,
+      reason: `non-DM room (${roomMemberCount} members)`,
+    };
   }
 
   return { authorized: true };
@@ -67,7 +70,10 @@ export function isDMRoom(room: MatrixRoom): boolean {
 /**
  * Sanitize filename for logging
  */
-export function sanitizeFilename(filename: string, maxLength: number = 200): string {
+export function sanitizeFilename(
+  filename: string,
+  maxLength: number = 200,
+): string {
   if (filename.length <= maxLength) {
     return filename;
   }

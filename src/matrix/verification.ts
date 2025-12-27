@@ -21,7 +21,10 @@ import * as logger from '../utils/logger.ts';
 /**
  * Log verification status on startup
  */
-export function setupAutoVerification(_client: MatrixClient, config: Config): void {
+export function setupAutoVerification(
+  _client: MatrixClient,
+  config: Config,
+): void {
   logger.info('Device verification: Manual via Element client');
   logger.info(`Device ID: ${config.deviceId}`);
   logger.info(`Device name: Roci Bot (Deno)`);

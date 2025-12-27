@@ -26,7 +26,11 @@ export async function handleImageMessage(
     const roomInfo = await getRoomInfo(client, roomId);
 
     // Validate authorization
-    const auth = validateAuthorization(event.sender, roomInfo.memberCount, config);
+    const auth = validateAuthorization(
+      event.sender,
+      roomInfo.memberCount,
+      config,
+    );
 
     if (!auth.authorized) {
       logger.debug(`Ignoring image: ${auth.reason}`);
@@ -35,12 +39,19 @@ export async function handleImageMessage(
 
     logger.info(`📷 Image from ${event.sender}`);
 
+    // Debug: Log full event content
+    logger.debug(
+      `Raw event content: ${JSON.stringify(event.content, null, 2)}`,
+    );
+
     // Determine if encrypted
     const isEncrypted = event.content.file !== undefined;
     const mxcUrl = isEncrypted ? event.content.file!.url : event.content.url!;
     const encryptedInfo = isEncrypted
       ? (event.content.file as unknown as EncryptedMediaInfo)
       : undefined;
+
+    logger.debug(`MXC URL: ${mxcUrl}, encrypted: ${isEncrypted}`);
 
     // Extract metadata
     const filename = event.content.body || 'image';
@@ -63,19 +74,34 @@ export async function handleImageMessage(
       return;
     }
 
-    logger.info(`Downloading image: ${filename} (${isEncrypted ? 'encrypted' : 'plain'})`);
+    logger.info(
+      `Downloading image: ${filename} (${isEncrypted ? 'encrypted' : 'plain'})`,
+    );
 
     // Download and decrypt if needed
-    const media = await downloadMedia(client, mxcUrl, encryptedInfo, filename, mimeType);
+    const media = await downloadMedia(
+      client,
+      mxcUrl,
+      encryptedInfo,
+      filename,
+      mimeType,
+    );
 
-    // Add width/height to media data
-    const imageData = {
-      ...media,
-      width,
-      height,
-    };
+    logger.debug(`Media downloaded and decrypted: ${media.size} bytes`);
 
-    // Forward to agent via IPC
+    // Write image to temp file instead of sending via IPC (avoids buffer issues with large data)
+    // Use /var/lib/roci/tmp-images because systemd PrivateTmp isolates /tmp and /var/tmp
+    const tempDir = '/var/lib/roci/tmp-images';
+    await Deno.mkdir(tempDir, { recursive: true });
+    const tempFile = `${tempDir}/${event.event_id}.${mimeType.split('/')[1]}`;
+
+    // Decode base64 and write to file
+    const imageBytes = Uint8Array.from(atob(media.data), (c) => c.charCodeAt(0));
+    await Deno.writeFile(tempFile, imageBytes);
+
+    logger.debug(`Image written to temp file: ${tempFile}`);
+
+    // Forward to agent via IPC with file path instead of data
     const ipcMessage = {
       type: 'user_message' as const,
       message_id: event.event_id,
@@ -83,17 +109,22 @@ export async function handleImageMessage(
       room_id: roomId,
       content: event.content.body || '',
       image: {
-        data: imageData.data,
-        mime_type: imageData.mimeType,
-        filename: imageData.filename,
-        width: imageData.width,
-        height: imageData.height,
-        size: imageData.size,
+        file_path: tempFile,
+        mime_type: media.mimeType,
+        filename: media.filename,
+        width,
+        height,
+        size: media.size,
       },
       timestamp: new Date(event.origin_server_ts).toISOString(),
     };
 
+    logger.info('Sending image metadata to agent via IPC...');
+
     const response = await agentClient.sendMessage(ipcMessage);
+
+    // Note: temp file cleanup is handled by agent after reading
+    logger.info('Received response from agent');
 
     // Handle agent response
     await handleAgentResponse(client, roomId, event.event_id, response);

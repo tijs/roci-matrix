@@ -24,7 +24,11 @@ export async function handleTextMessage(
     const roomInfo = await getRoomInfo(client, roomId);
 
     // Validate authorization
-    const auth = validateAuthorization(event.sender, roomInfo.memberCount, config);
+    const auth = validateAuthorization(
+      event.sender,
+      roomInfo.memberCount,
+      config,
+    );
 
     if (!auth.authorized) {
       logger.debug(`Ignoring message: ${auth.reason}`);
@@ -102,6 +106,8 @@ async function handleAgentResponse(
       break;
 
     default:
-      logger.error(`Unknown agent response type: ${(response as { type: string }).type}`);
+      logger.error(
+        `Unknown agent response type: ${(response as { type: string }).type}`,
+      );
   }
 }

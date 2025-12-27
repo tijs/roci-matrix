@@ -37,7 +37,11 @@ export function decodeMessage(buffer: Uint8Array): {
   }
 
   // Read length (4-byte big-endian)
-  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const view = new DataView(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.byteLength,
+  );
   const length = view.getUint32(0, false); // false = big-endian
 
   // Check if we have enough data
@@ -61,7 +65,10 @@ export function decodeMessage(buffer: Uint8Array): {
 /**
  * Read exactly numBytes from a connection
  */
-export async function readExactly(conn: Deno.Conn, numBytes: number): Promise<Uint8Array> {
+export async function readExactly(
+  conn: Deno.Conn,
+  numBytes: number,
+): Promise<Uint8Array> {
   const result = new Uint8Array(numBytes);
   let offset = 0;
 

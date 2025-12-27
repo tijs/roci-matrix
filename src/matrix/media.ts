@@ -18,14 +18,22 @@ export async function downloadMedia(
   mimeType?: string,
 ): Promise<MediaData> {
   try {
-    // Download from Matrix media server
-    const buffer = await downloadFromMxc(client, mxcUrl);
+    let decryptedBuffer: Uint8Array;
 
-    // Decrypt if encrypted
-    let decryptedBuffer = buffer;
     if (encryptedInfo) {
-      decryptedBuffer = await decryptMedia(buffer, encryptedInfo);
+      // Use matrix-bot-sdk's built-in decryption for encrypted media
+      logger.debug('Using client.crypto.decryptMedia() for encrypted media');
+      const decrypted = await client.crypto.decryptMedia(
+        encryptedInfo as unknown as Parameters<typeof client.crypto.decryptMedia>[0],
+      );
+      decryptedBuffer = new Uint8Array(decrypted);
+    } else {
+      // Download unencrypted media
+      const response = await client.downloadContent(mxcUrl);
+      decryptedBuffer = new Uint8Array(response.data);
     }
+
+    logger.debug(`Media processed: ${decryptedBuffer.length} bytes`);
 
     // Base64 encode for IPC
     const base64 = encodeBase64(decryptedBuffer);
@@ -40,94 +48,6 @@ export async function downloadMedia(
     logger.error('Failed to download media', error);
     throw error;
   }
-}
-
-/**
- * Download raw bytes from MXC URL
- */
-async function downloadFromMxc(client: MatrixClient, mxcUrl: string): Promise<Uint8Array> {
-  try {
-    // Convert MXC URL to HTTP URL
-    const httpUrl = client.mxcToHttp(mxcUrl);
-
-    // Download
-    const response = await fetch(httpUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
-  } catch (error) {
-    logger.error(`Failed to download from ${mxcUrl}`, error);
-    throw error;
-  }
-}
-
-/**
- * Decrypt encrypted media
- * Uses AES-CTR with parameters from event
- */
-async function decryptMedia(
-  encryptedData: Uint8Array,
-  info: EncryptedMediaInfo,
-): Promise<Uint8Array> {
-  try {
-    // Import key from JWK
-    const keyData = Uint8Array.from(atob(info.key.k), (c) => c.charCodeAt(0));
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'AES-CTR' },
-      false,
-      ['decrypt'],
-    );
-
-    // Decode IV
-    const iv = Uint8Array.from(atob(info.iv), (c) => c.charCodeAt(0));
-
-    // Decrypt
-    // Create a proper Uint8Array with ArrayBuffer (not ArrayBufferLike)
-    const dataBuffer = new Uint8Array(encryptedData);
-    const decrypted = await crypto.subtle.decrypt(
-      {
-        name: 'AES-CTR',
-        counter: iv,
-        length: 64,
-      },
-      key,
-      dataBuffer,
-    );
-
-    const decryptedBytes = new Uint8Array(decrypted);
-
-    // Verify hash if provided
-    if (info.hashes.sha256) {
-      const actualHash = await hashSHA256(decryptedBytes);
-      const expectedHash = info.hashes.sha256.replace(/^sha256:/, '');
-
-      if (actualHash !== expectedHash) {
-        throw new Error('Hash verification failed - decrypted data corrupted');
-      }
-    }
-
-    return decryptedBytes;
-  } catch (error) {
-    logger.error('Media decryption failed', error);
-    throw error;
-  }
-}
-
-/**
- * Calculate SHA256 hash of data
- */
-async function hashSHA256(data: Uint8Array): Promise<string> {
-  // Ensure we have a proper Uint8Array with ArrayBuffer
-  const dataBuffer = new Uint8Array(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashBytes = new Uint8Array(hashBuffer);
-  // Use Deno's native base64 encoding (prevents stack overflow for large data)
-  return denoEncodeBase64(hashBytes);
 }
 
 /**

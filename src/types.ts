@@ -56,7 +56,7 @@ export interface UserReaction {
  * Image attachment data
  */
 export interface ImageAttachment {
-  data: string; // Base64
+  file_path: string; // Temp file path (avoids IPC buffer issues)
   mime_type: string;
   filename: string;
   width?: number;
@@ -69,7 +69,7 @@ export interface ImageAttachment {
  */
 export interface FileAttachment {
   type: 'document';
-  data: string; // Base64
+  file_path: string; // Temp file path (avoids IPC buffer issues)
   mime_type: string;
   filename: string;
   size: number;

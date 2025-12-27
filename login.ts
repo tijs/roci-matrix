@@ -39,15 +39,20 @@ async function login() {
     // Extract localpart from full user ID (@roci:envs.net -> roci)
     const username = userId.startsWith('@') ? userId.split(':')[0].substring(1) : userId;
 
-    const response = await client.doRequest('POST', '/_matrix/client/r0/login', null, {
-      type: 'm.login.password',
-      identifier: {
-        type: 'm.id.user',
-        user: username,
+    const response = await client.doRequest(
+      'POST',
+      '/_matrix/client/r0/login',
+      null,
+      {
+        type: 'm.login.password',
+        identifier: {
+          type: 'm.id.user',
+          user: username,
+        },
+        password: password,
+        initial_device_display_name: 'Roci Bot (Deno)',
       },
-      password: password,
-      initial_device_display_name: 'Roci Bot (Deno)',
-    });
+    );
 
     console.log('');
     console.log('✅ Login successful!');

@@ -25,7 +25,9 @@ export async function loadConfig(): Promise<Config> {
   // Check required variables
   const missing = requiredVars.filter((name) => !Deno.env.get(name));
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}`,
+    );
   }
 
   // Build config
@@ -38,8 +40,10 @@ export async function loadConfig(): Promise<Config> {
     authorizedUser: Deno.env.get('AUTHORIZED_USER')!,
 
     // IPC
-    ipcSocketPath: Deno.env.get('IPC_SOCKET_PATH') || '/var/run/roci/agent.sock',
-    ipcServerPath: Deno.env.get('IPC_SERVER_PATH') || '/var/run/roci/matrix.sock',
+    ipcSocketPath: Deno.env.get('IPC_SOCKET_PATH') ||
+      '/var/run/roci/agent.sock',
+    ipcServerPath: Deno.env.get('IPC_SERVER_PATH') ||
+      '/var/run/roci/matrix.sock',
 
     // Storage
     storeDir: Deno.env.get('STORE_DIR') || './store',
@@ -53,13 +57,21 @@ export async function loadConfig(): Promise<Config> {
     throw new Error(`Invalid MATRIX_USER_ID format: ${config.userId}`);
   }
 
-  if (!config.authorizedUser.startsWith('@') || !config.authorizedUser.includes(':')) {
+  if (
+    !config.authorizedUser.startsWith('@') ||
+    !config.authorizedUser.includes(':')
+  ) {
     throw new Error(`Invalid AUTHORIZED_USER format: ${config.authorizedUser}`);
   }
 
   // Validate homeserver URL
-  if (!config.homeserverUrl.startsWith('http://') && !config.homeserverUrl.startsWith('https://')) {
-    throw new Error(`Invalid MATRIX_HOMESERVER format: ${config.homeserverUrl}`);
+  if (
+    !config.homeserverUrl.startsWith('http://') &&
+    !config.homeserverUrl.startsWith('https://')
+  ) {
+    throw new Error(
+      `Invalid MATRIX_HOMESERVER format: ${config.homeserverUrl}`,
+    );
   }
 
   return config;

@@ -4,7 +4,8 @@ Matrix communication service for Roci.
 
 ## Service Overview
 
-This service handles Matrix protocol (E2E encrypted messaging) and communicates with the roci-agent service via Unix socket IPC.
+This service handles Matrix protocol (E2E encrypted messaging) and communicates
+with the roci-agent service via Unix socket IPC.
 
 **Role in Architecture:**
 
@@ -44,7 +45,8 @@ deno check src/**/*.ts tests/**/*.ts
 deno test --allow-all
 ```
 
-**These checks are enforced in the deployment workflow** - `./scripts/deploy.sh` runs them automatically.
+**These checks are enforced in the deployment workflow** - `./scripts/deploy.sh`
+runs them automatically.
 
 ### Running
 
@@ -132,7 +134,8 @@ This service has both an IPC **client** and **server**:
 
 **Architecture:**
 
-- Matrix service (this repo) communicates with roci-agent service via Unix socket
+- Matrix service (this repo) communicates with roci-agent service via Unix
+  socket
 - Agent service follows Claude Agent SDK pattern (model-agnostic)
 - Memory managed by roci-memory service (Letta blocks + state files)
 - Model: Claude (primary), GPT/Gemini (future)
@@ -140,7 +143,8 @@ This service has both an IPC **client** and **server**:
 
 **IPC Communication:**
 
-The Matrix service uses a length-prefixed JSON protocol (4-byte big-endian length + JSON payload):
+The Matrix service uses a length-prefixed JSON protocol (4-byte big-endian
+length + JSON payload):
 
 ```typescript
 // Matrix → Agent (user message)
@@ -186,7 +190,8 @@ The Matrix service uses a length-prefixed JSON protocol (4-byte big-endian lengt
 
 1. systemd timer triggers every 2 hours
 2. roci-agent runs watch rotation with time-aware prompt
-3. If meaningful insight found, agent sends to Matrix via `/var/run/roci/matrix.sock`
+3. If meaningful insight found, agent sends to Matrix via
+   `/var/run/roci/matrix.sock`
 4. Matrix IPC server receives and sends to user
 
 ## File Structure
@@ -296,9 +301,9 @@ See `roci-matrix.service` for deployment configuration.
 
 ## Development Status
 
-**Current:** v1.0.0 - TypeScript/Deno migration complete
-**Migration:** From Python (matrix-nio) to TypeScript (matrix-bot-sdk)
-**Runtime:** Deno 2.0+ with npm: imports
+**Current:** v1.0.0 - TypeScript/Deno migration complete **Migration:** From
+Python (matrix-nio) to TypeScript (matrix-bot-sdk) **Runtime:** Deno 2.0+ with
+npm: imports
 
 **Production status:** Ready for deployment
 

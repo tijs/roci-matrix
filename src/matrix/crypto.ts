@@ -10,18 +10,21 @@ import * as logger from '../utils/logger.ts';
  */
 export function setupEncryptionListeners(client: MatrixClient): void {
   // Monitor decryption failures
-  client.on('room.failed_decryption', (roomId: string, event: unknown, error: Error) => {
-    // Ignore "no session found" for old messages (expected behavior)
-    if (error.message && error.message.includes('no session found')) {
-      return;
-    }
+  client.on(
+    'room.failed_decryption',
+    (roomId: string, event: unknown, error: Error) => {
+      // Ignore "no session found" for old messages (expected behavior)
+      if (error.message && error.message.includes('no session found')) {
+        return;
+      }
 
-    logger.error(`Decryption failed in ${roomId}`, {
-      // @ts-ignore: event_id may exist
-      eventId: event?.event_id,
-      error: error.message,
-    });
-  });
+      logger.error(`Decryption failed in ${roomId}`, {
+        // @ts-ignore: event_id may exist
+        eventId: event?.event_id,
+        error: error.message,
+      });
+    },
+  );
 
   // Optional: Log successful decryptions in debug mode
   client.on('room.decrypted_event', (roomId: string, event: unknown) => {

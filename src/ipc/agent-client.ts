@@ -13,7 +13,10 @@ export class AgentIPCClient {
   private socketPath: string;
   private timeout: number;
 
-  constructor(socketPath: string = '/var/run/roci/agent.sock', timeout: number = 600_000) {
+  constructor(
+    socketPath: string = '/var/run/roci/agent.sock',
+    timeout: number = 600_000,
+  ) {
     this.socketPath = socketPath;
     this.timeout = timeout; // 10 minutes default for complex agent work
   }
@@ -21,7 +24,9 @@ export class AgentIPCClient {
   /**
    * Send message to agent and wait for response
    */
-  async sendMessage(message: UserMessage | UserReaction): Promise<AgentResponse> {
+  async sendMessage(
+    message: UserMessage | UserReaction,
+  ): Promise<AgentResponse> {
     try {
       // Connect to agent service
       const conn = await Deno.connect({
@@ -77,7 +82,9 @@ export class AgentIPCClient {
   /**
    * Read response with timeout
    */
-  private async readResponseWithTimeout(conn: Deno.Conn): Promise<Record<string, unknown>> {
+  private async readResponseWithTimeout(
+    conn: Deno.Conn,
+  ): Promise<Record<string, unknown>> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('timeout')), this.timeout);
     });
@@ -90,7 +97,9 @@ export class AgentIPCClient {
   /**
    * Read length-prefixed response
    */
-  private async readResponse(conn: Deno.Conn): Promise<Record<string, unknown>> {
+  private async readResponse(
+    conn: Deno.Conn,
+  ): Promise<Record<string, unknown>> {
     // Read 4-byte length prefix
     const lengthBytes = await readExactly(conn, 4);
     const length = new DataView(lengthBytes.buffer).getUint32(0, false); // false = big-endian

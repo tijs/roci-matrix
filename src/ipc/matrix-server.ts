@@ -143,7 +143,9 @@ export class MatrixIPCServer {
   /**
    * Handle incoming message
    */
-  private async handleMessage(message: Record<string, unknown>): Promise<ProactiveResponse> {
+  private async handleMessage(
+    message: Record<string, unknown>,
+  ): Promise<ProactiveResponse> {
     if (message.type === 'proactive_message') {
       return await this.messageHandler(message as unknown as ProactiveMessage);
     }
@@ -157,7 +159,10 @@ export class MatrixIPCServer {
   /**
    * Send error response
    */
-  private async sendError(conn: Deno.Conn, errorMessage: string): Promise<void> {
+  private async sendError(
+    conn: Deno.Conn,
+    errorMessage: string,
+  ): Promise<void> {
     const response: ProactiveResponse = {
       type: 'error',
       error: errorMessage,

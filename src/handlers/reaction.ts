@@ -24,7 +24,11 @@ export async function handleReaction(
     const roomInfo = await getRoomInfo(client, roomId);
 
     // Validate authorization
-    const auth = validateAuthorization(event.sender, roomInfo.memberCount, config);
+    const auth = validateAuthorization(
+      event.sender,
+      roomInfo.memberCount,
+      config,
+    );
 
     if (!auth.authorized) {
       logger.debug(`Ignoring reaction: ${auth.reason}`);
@@ -41,7 +45,9 @@ export async function handleReaction(
     const targetEventId = relatesTo.event_id;
     const reaction = relatesTo.key || '';
 
-    logger.info(`👍 Reaction from ${event.sender}: ${reaction} on ${targetEventId}`);
+    logger.info(
+      `👍 Reaction from ${event.sender}: ${reaction} on ${targetEventId}`,
+    );
 
     // Forward to agent via IPC (fire-and-forget, no response needed)
     const ipcMessage = {

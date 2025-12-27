@@ -3,7 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.1] - 2025-12-27
+
+### Fixed
+
+- **Media Handling**: Fixed base64 encoding and added MIME type validation
+  - Properly encodes media to base64 for transmission
+  - Validates MIME types before processing
+
+- **Code Quality**: Fixed lint error with unused client parameter
+
+### Documentation
+
+- Added quality checks section to CLAUDE.md
+- Added versioned deployment documentation to README
 
 ## [1.0.0] - 2025-12-25
 
@@ -30,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authentication: Password login per session → persistent access token
 - Encryption storage: Olm → Rust SDK Sled database
 - New device (old messages won't decrypt from Python version)
-- Simplified device verification to manual-only (matrix-bot-sdk doesn't expose SAS APIs)
+- Simplified device verification to manual-only (matrix-bot-sdk doesn't expose
+  SAS APIs)
 
 ### Fixed
 
@@ -47,11 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Migration Notes
 
-This is a complete rewrite from Python to TypeScript. The Python implementation (`roci-matrix-bot`) should be archived. Key differences:
+This is a complete rewrite from Python to TypeScript. The Python implementation
+(`roci-matrix-bot`) should be archived. Key differences:
 
 1. **New device login required** - old encryption keys not migrated
 2. **Manual verification needed** - one-time setup via Element
 3. **Persistent access token** - no re-login on each start
 4. **Same IPC protocol** - byte-compatible with roci-agent
 
-Deployment: Archive Python version, deploy Deno version, perform manual device verification.
+Deployment: Archive Python version, deploy Deno version, perform manual device
+verification.

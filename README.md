@@ -1,12 +1,14 @@
 # roci-matrix
 
-Matrix communication service for Roci - handles E2E encrypted messaging and IPC communication with the roci-agent service.
+Matrix communication service for Roci - handles E2E encrypted messaging and IPC
+communication with the roci-agent service.
 
 ## Architecture
 
 This is the Matrix protocol layer in Roci's three-service architecture:
 
-- **roci-memory** (Deno) - Memory management (Letta + state files + message cache)
+- **roci-memory** (Deno) - Memory management (Letta + state files + message
+  cache)
 - **roci-agent** (Node.js) - Agent harness following Claude Agent SDK pattern
 - **roci-matrix** (Deno) - Matrix protocol with E2E encryption ← **This repo**
 
@@ -128,7 +130,8 @@ ssh roci 'cd ~/roci/roci-matrix && git fetch --tags && git checkout v1.0.0'
 5. Push: `git push && git push --tags`
 6. Create GitHub release
 
-See parent repository [roci](https://github.com/tijs/roci) for full deployment scripts and systemd service configuration.
+See parent repository [roci](https://github.com/tijs/roci) for full deployment
+scripts and systemd service configuration.
 
 ## Development
 
@@ -179,8 +182,10 @@ All configuration via environment variables (`.env` file):
 - `MATRIX_ACCESS_TOKEN` - Access token from login
 - `MATRIX_DEVICE_ID` - Device ID from login
 - `AUTHORIZED_USER` - Your Matrix user ID (only you can use the bot)
-- `IPC_SOCKET_PATH` - Path to agent service socket (default: `/var/run/roci/agent.sock`)
-- `IPC_SERVER_PATH` - Path for Matrix IPC server (default: `/var/run/roci/matrix.sock`)
+- `IPC_SOCKET_PATH` - Path to agent service socket (default:
+  `/var/run/roci/agent.sock`)
+- `IPC_SERVER_PATH` - Path for Matrix IPC server (default:
+  `/var/run/roci/matrix.sock`)
 - `STORE_DIR` - Crypto storage directory (default: `./store`)
 - `SENTRY_DSN` - Optional error tracking
 

@@ -76,23 +76,26 @@ function setupEventListeners(
   agentClient: AgentIPCClient,
 ): void {
   // Room message events (text, images, files)
-  client.on('room.message', async (roomId: string, event: MatrixMessageEvent) => {
-    try {
-      const msgtype = event.content.msgtype;
+  client.on(
+    'room.message',
+    async (roomId: string, event: MatrixMessageEvent) => {
+      try {
+        const msgtype = event.content.msgtype;
 
-      if (msgtype === 'm.text') {
-        await handleTextMessage(client, roomId, event, config, agentClient);
-      } else if (msgtype === 'm.image') {
-        await handleImageMessage(client, roomId, event, config, agentClient);
-      } else if (msgtype === 'm.file') {
-        await handleFileMessage(client, roomId, event, config, agentClient);
-      } else {
-        logger.debug(`Ignoring message type: ${msgtype}`);
+        if (msgtype === 'm.text') {
+          await handleTextMessage(client, roomId, event, config, agentClient);
+        } else if (msgtype === 'm.image') {
+          await handleImageMessage(client, roomId, event, config, agentClient);
+        } else if (msgtype === 'm.file') {
+          await handleFileMessage(client, roomId, event, config, agentClient);
+        } else {
+          logger.debug(`Ignoring message type: ${msgtype}`);
+        }
+      } catch (error) {
+        logger.error('Error in room.message handler', error);
       }
-    } catch (error) {
-      logger.error('Error in room.message handler', error);
-    }
-  });
+    },
+  );
 
   // Room events (reactions, etc.)
   client.on('room.event', async (roomId: string, event: MatrixMessageEvent) => {
