@@ -3,6 +3,7 @@
  */
 
 import { MatrixClient } from 'matrix-bot-sdk';
+import { encodeBase64 as denoEncodeBase64 } from '@std/encoding/base64';
 import type { EncryptedMediaInfo, MediaData } from '../types.ts';
 import * as logger from '../utils/logger.ts';
 
@@ -124,14 +125,15 @@ async function hashSHA256(data: Uint8Array): Promise<string> {
   // Ensure we have a proper Uint8Array with ArrayBuffer
   const dataBuffer = new Uint8Array(data);
   const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashBase64 = btoa(String.fromCharCode(...hashArray));
-  return hashBase64;
+  const hashBytes = new Uint8Array(hashBuffer);
+  // Use Deno's native base64 encoding (prevents stack overflow for large data)
+  return denoEncodeBase64(hashBytes);
 }
 
 /**
- * Base64 encode bytes
+ * Base64 encode bytes using Deno's native encoding
+ * Replaces btoa+spread operator which causes stack overflow for large images
  */
 function encodeBase64(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data));
+  return denoEncodeBase64(data);
 }
