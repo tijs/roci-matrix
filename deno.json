@@ -2,7 +2,6 @@
   "name": "@tijs/roci-matrix",
   "version": "1.0.1",
   "exports": "./src/main.ts",
-  "nodeModulesDir": "auto",
   "tasks": {
     "start": "deno run --allow-all src/main.ts",
     "dev": "deno run --allow-all --watch src/main.ts",
@@ -10,6 +9,7 @@
     "test": "deno test --allow-all",
     "check": "deno check src/**/*.ts",
     "lint": "deno lint",
+    "lint:comments": "! grep -r 'TODO\\|FIXME' src/ tests/ --include='*.ts' || (echo 'ERROR: TODO/FIXME comments are not allowed' && exit 1)",
     "fmt": "deno fmt"
   },
   "imports": {
@@ -27,6 +27,7 @@
       "tags": ["recommended"]
     }
   },
+  "comment": "Note: TODO/FIXME comments are banned - use 'deno task lint:comments' to check",
   "fmt": {
     "useTabs": false,
     "lineWidth": 100,
