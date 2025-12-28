@@ -92,13 +92,15 @@ Use parent directory deploy scripts:
 
 ## Architecture
 
-### Three-Service Architecture
+### Four-Service Architecture
 
-Roci uses three independent systemd services:
+Roci uses four independent systemd services:
 
 1. **roci-memory.service** (Deno) - Memory management
-2. **roci-agent.service** (Node.js) - Agent harness, depends on memory
-3. **roci-matrix.service** (Deno) - Matrix protocol, depends on agent
+2. **roci-llm.service** (Deno proxy) - LLM gateway, port 3000
+3. **roci-litellm.service** (Python) - LiteLLM backend, port 8000
+4. **roci-agent.service** (Deno) - Agent harness, depends on memory
+5. **roci-matrix.service** (Deno) - Matrix protocol, depends on agent
 
 ### Bidirectional IPC
 

@@ -5,11 +5,11 @@ communication with the roci-agent service.
 
 ## Architecture
 
-This is the Matrix protocol layer in Roci's three-service architecture:
+This is the Matrix protocol layer in Roci's four-service architecture:
 
-- **roci-memory** (Deno) - Memory management (Letta + state files + message
-  cache)
-- **roci-agent** (Node.js) - Agent harness following Claude Agent SDK pattern
+- **roci-memory** (Deno) - Memory management (Letta + state files)
+- **roci-llm** (Deno + Python) - LLM gateway with multi-model support
+- **roci-agent** (Deno) - Agent harness following Claude Agent SDK pattern
 - **roci-matrix** (Deno) - Matrix protocol with E2E encryption ← **This repo**
 
 ### IPC Communication
