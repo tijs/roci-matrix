@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-29
+
+### Added
+
+- **Persistent Attachments Storage** - Files and images now stored permanently with metadata
+  - Organized by upload date in `state/attachments/by-date/YYYY-MM-DD/`
+  - JSONL metadata log (`metadata.jsonl`) for searchable file index
+  - Metadata includes: timestamp, event ID, filename, MIME type, size, path, indexed status
+  - Auto-generated README.md with query examples using jq
+  - Enables RAG indexing of files from previous sessions
+  - Replaces temporary storage in `/var/lib/roci/tmp-images`
+
 ## [1.0.1] - 2025-12-27
 
 ### Fixed

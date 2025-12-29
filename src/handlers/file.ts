@@ -109,9 +109,55 @@ export async function handleFileMessage(
 
     logger.debug(`File downloaded and decrypted: ${media.size} bytes`);
 
-    // Write file to temp directory (same as images - avoids IPC buffer issues)
-    const tempDir = '/var/lib/roci/tmp-images';
+    // Use persistent attachments directory organized by date
+    const attachmentsDir = '/home/tijs/roci/state/attachments';
+    const dateDir = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const tempDir = `${attachmentsDir}/by-date/${dateDir}`;
     await Deno.mkdir(tempDir, { recursive: true });
+
+    // Ensure README exists
+    const readmePath = `${attachmentsDir}/README.md`;
+    try {
+      await Deno.stat(readmePath);
+    } catch {
+      await Deno.writeTextFile(
+        readmePath,
+        `# Attachments Directory
+
+This directory stores all files and images uploaded via Matrix.
+
+## Structure
+
+- \`by-date/YYYY-MM-DD/\` - Files organized by upload date
+- \`metadata.jsonl\` - Searchable index of all uploads
+
+## Metadata Format
+
+Each line is a JSON object with:
+- t: timestamp
+- event_id: Matrix event ID
+- filename: original filename
+- path: full path to file
+- mime_type, size, user_id
+- indexed: whether file is in RAG index
+
+## Querying
+
+Use jq to search metadata:
+
+\`\`\`bash
+# Files uploaded today
+jq 'select(.t | startswith("${dateDir}"))' metadata.jsonl
+
+# All PDFs
+jq 'select(.mime_type == "application/pdf")' metadata.jsonl
+
+# Not yet indexed
+jq 'select(.indexed == false)' metadata.jsonl
+\`\`\`
+`,
+      );
+    }
 
     // Get file extension from mime type or filename
     const ext = filename.split('.').pop() || 'pdf';
@@ -121,7 +167,28 @@ export async function handleFileMessage(
     const fileBytes = Uint8Array.from(atob(media.data), (c) => c.charCodeAt(0));
     await Deno.writeFile(tempFile, fileBytes);
 
-    logger.debug(`File written to temp file: ${tempFile}`);
+    logger.debug(`File written to: ${tempFile}`);
+
+    // Log metadata entry
+    const metadataEntry = {
+      t: new Date().toISOString(),
+      event_id: event.event_id,
+      filename: filename,
+      mime_type: mimeType,
+      size: fileBytes.length,
+      path: tempFile,
+      user_id: event.sender,
+      indexed: false,
+    };
+
+    const metadataPath = `${attachmentsDir}/metadata.jsonl`;
+    await Deno.writeTextFile(
+      metadataPath,
+      JSON.stringify(metadataEntry) + '\n',
+      { append: true },
+    );
+
+    logger.debug(`Metadata logged to ${metadataPath}`);
 
     // Forward to agent via IPC with file path instead of data
     const ipcMessage = {
