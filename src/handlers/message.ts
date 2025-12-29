@@ -5,7 +5,7 @@
 import { MatrixClient } from 'matrix-bot-sdk';
 import type { AgentResponse, Config, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
-import { getRoomInfo, sendReaction, sendTextMessage } from '../matrix/client.ts';
+import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
 import { validateAuthorization } from '../utils/auth.ts';
 import * as logger from '../utils/logger.ts';
 
@@ -50,10 +50,17 @@ export async function handleTextMessage(
       timestamp: new Date(event.origin_server_ts).toISOString(),
     };
 
-    const response = await agentClient.sendMessage(ipcMessage);
+    // Natural delay before starting typing
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await setTyping(client, roomId, true);
 
-    // Handle agent response
-    await handleAgentResponse(client, roomId, event.event_id, response);
+    try {
+      const response = await agentClient.sendMessage(ipcMessage);
+      await setTyping(client, roomId, false); // Stop before sending
+      await handleAgentResponse(client, roomId, event.event_id, response);
+    } finally {
+      await setTyping(client, roomId, false); // Cleanup
+    }
   } catch (error) {
     logger.error('Error handling text message', error);
 

@@ -5,7 +5,7 @@
 import { MatrixClient } from 'matrix-bot-sdk';
 import type { AgentResponse, Config, EncryptedMediaInfo, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
-import { getRoomInfo, sendReaction, sendTextMessage } from '../matrix/client.ts';
+import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
 import { downloadMedia } from '../matrix/media.ts';
 import { validateAuthorization } from '../utils/auth.ts';
 import { normalizeImageMimeType } from '../utils/media-validation.ts';
@@ -119,17 +119,27 @@ export async function handleImageMessage(
       timestamp: new Date(event.origin_server_ts).toISOString(),
     };
 
+    // Natural delay before starting typing
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await setTyping(client, roomId, true);
+
     logger.info('Sending image metadata to agent via IPC...');
 
-    const response = await agentClient.sendMessage(ipcMessage);
+    try {
+      const response = await agentClient.sendMessage(ipcMessage);
 
-    // Note: temp file cleanup is handled by agent after reading
-    logger.info('Received response from agent');
+      // Note: temp file cleanup is handled by agent after reading
+      logger.info('Received response from agent');
 
-    // Handle agent response
-    await handleAgentResponse(client, roomId, event.event_id, response);
+      await setTyping(client, roomId, false); // Stop before sending
 
-    logger.success('Image processed successfully');
+      // Handle agent response
+      await handleAgentResponse(client, roomId, event.event_id, response);
+
+      logger.success('Image processed successfully');
+    } finally {
+      await setTyping(client, roomId, false); // Cleanup
+    }
   } catch (error) {
     logger.error('Error handling image message', error);
 
