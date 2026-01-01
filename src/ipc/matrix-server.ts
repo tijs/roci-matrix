@@ -32,6 +32,17 @@ export class MatrixIPCServer {
    * Start the IPC server
    */
   async start(): Promise<void> {
+    // Create socket directory if it doesn't exist
+    // (fallback for dev environments without tmpfiles.d)
+    const socketDir = this.socketPath.substring(0, this.socketPath.lastIndexOf('/'));
+    try {
+      await Deno.mkdir(socketDir, { recursive: true, mode: 0o755 });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.AlreadyExists)) {
+        throw error;
+      }
+    }
+
     // Remove existing socket file if it exists
     try {
       await Deno.remove(this.socketPath);
