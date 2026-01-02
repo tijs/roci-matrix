@@ -154,7 +154,9 @@ export async function setTyping(
 ): Promise<void> {
   try {
     await client.setTyping(roomId, typing, timeout);
-    logger.debug(`Typing indicator ${typing ? 'started' : 'stopped'} for ${roomId}`);
+    logger.debug(
+      `Typing indicator ${typing ? 'started' : 'stopped'} for ${roomId}`,
+    );
   } catch (error) {
     // Log but don't throw - typing failures shouldn't block messages
     logger.warn(`Failed to set typing indicator (typing=${typing}): ${error}`);

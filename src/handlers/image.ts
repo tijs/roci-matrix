@@ -142,7 +142,10 @@ jq 'select(.indexed == false)' metadata.jsonl
     const tempFile = `${tempDir}/${event.event_id}.${mimeType.split('/')[1]}`;
 
     // Decode base64 and write to file
-    const imageBytes = Uint8Array.from(atob(media.data), (c) => c.charCodeAt(0));
+    const imageBytes = Uint8Array.from(
+      atob(media.data),
+      (c) => c.charCodeAt(0),
+    );
     await Deno.writeFile(tempFile, imageBytes);
 
     logger.debug(`Image written to: ${tempFile}`);

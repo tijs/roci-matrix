@@ -24,7 +24,9 @@ export async function downloadMedia(
       // Use matrix-bot-sdk's built-in decryption for encrypted media
       logger.debug('Using client.crypto.decryptMedia() for encrypted media');
       const decrypted = await client.crypto.decryptMedia(
-        encryptedInfo as unknown as Parameters<typeof client.crypto.decryptMedia>[0],
+        encryptedInfo as unknown as Parameters<
+          typeof client.crypto.decryptMedia
+        >[0],
       );
       decryptedBuffer = new Uint8Array(decrypted);
     } else {

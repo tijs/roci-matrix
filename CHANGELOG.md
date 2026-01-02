@@ -10,10 +10,12 @@ and this project adheres to
 
 ### Added
 
-- **Persistent Attachments Storage** - Files and images now stored permanently with metadata
+- **Persistent Attachments Storage** - Files and images now stored permanently
+  with metadata
   - Organized by upload date in `state/attachments/by-date/YYYY-MM-DD/`
   - JSONL metadata log (`metadata.jsonl`) for searchable file index
-  - Metadata includes: timestamp, event ID, filename, MIME type, size, path, indexed status
+  - Metadata includes: timestamp, event ID, filename, MIME type, size, path,
+    indexed status
   - Auto-generated README.md with query examples using jq
   - Enables RAG indexing of files from previous sessions
   - Replaces temporary storage in `/var/lib/roci/tmp-images`

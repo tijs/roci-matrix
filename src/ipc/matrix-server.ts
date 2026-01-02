@@ -34,7 +34,10 @@ export class MatrixIPCServer {
   async start(): Promise<void> {
     // Create socket directory if it doesn't exist
     // (fallback for dev environments without tmpfiles.d)
-    const socketDir = this.socketPath.substring(0, this.socketPath.lastIndexOf('/'));
+    const socketDir = this.socketPath.substring(
+      0,
+      this.socketPath.lastIndexOf('/'),
+    );
     try {
       await Deno.mkdir(socketDir, { recursive: true, mode: 0o755 });
     } catch (error) {
