@@ -243,11 +243,12 @@ roci-matrix/
 
 ## Environment Variables
 
+**In `.env` file:**
+
 ```bash
 # Required
 MATRIX_HOMESERVER=https://matrix.envs.net
 MATRIX_USER_ID=@roci:envs.net
-MATRIX_ACCESS_TOKEN=syt_...  # From login.ts
 MATRIX_DEVICE_ID=...         # From login.ts
 AUTHORIZED_USER=@tijs:envs.net
 
@@ -260,6 +261,12 @@ STORE_DIR=./store
 
 # Optional
 SENTRY_DSN=
+```
+
+**In `/etc/roci/secrets.conf` (loaded by systemd):**
+
+```bash
+MATRIX_ACCESS_TOKEN=syt_...  # From login.ts
 ```
 
 ## Systemd Service
