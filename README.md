@@ -123,12 +123,18 @@ ssh roci 'cd ~/roci/roci-matrix && git fetch --tags && git checkout v1.0.0'
 
 ### Release Process
 
+This is one of Roci's public repositories (along with roci-skills). Releases are
+automated via GitHub Actions.
+
 1. Update `CHANGELOG.md` with changes
 2. Update version in `deno.json`
-3. Commit changes
-4. Create git tag: `git tag v1.x.x`
-5. Push: `git push && git push --tags`
-6. Create GitHub release
+3. Run quality checks: `deno fmt && deno lint && deno check src/**/*.ts`
+4. Commit changes
+5. Create git tag: `git tag v1.x.x`
+6. Push: `git push && git push --tags`
+
+GitHub Actions will automatically create a release with changelog content when
+the tag is pushed.
 
 See parent repository [roci](https://github.com/tijs/roci) for full deployment
 scripts and systemd service configuration.
@@ -213,7 +219,20 @@ MIT
 
 ## Related
 
-- [roci](https://github.com/tijs/roci) - Parent repository
-- [roci-agent](https://github.com/tijs/roci-agent) - Agent service
-- [roci-memory](https://github.com/tijs/roci-memory) - Memory service
+**Public repositories:**
+
+- [roci-matrix](https://github.com/tijs/roci-matrix) - Matrix service (this
+  repo)
+- [roci-skills](https://github.com/tijs/roci-skills) - Skills repository
+
+**Private repositories** (part of Roci architecture):
+
+- roci - Parent repository with deployment scripts
+- roci-agent - Agent service
+- roci-memory - Memory service
+- roci-rag - RAG service
+- roci-llm - LLM gateway service
+
+**External:**
+
 - [matrix-bot-sdk](https://github.com/turt2live/matrix-bot-sdk) - Matrix SDK
