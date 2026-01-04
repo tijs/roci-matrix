@@ -1,10 +1,10 @@
 /**
  * IPC Server for Matrix Service
- * Receives proactive messages from roci-agent
+ * Receives proactive messages and image uploads from roci-agent
  */
 
 import { decodeMessage, encodeMessage } from './protocol.ts';
-import type { ProactiveMessage, ProactiveResponse } from '../types.ts';
+import type { AgentImageMessage, ProactiveMessage, ProactiveResponse } from '../types.ts';
 
 /**
  * Handler for proactive messages
@@ -14,18 +14,31 @@ export type ProactiveMessageHandler = (
 ) => Promise<ProactiveResponse>;
 
 /**
+ * Handler for image messages
+ */
+export type ImageMessageHandler = (
+  message: AgentImageMessage,
+) => Promise<ProactiveResponse>;
+
+/**
  * IPC server for receiving proactive messages from agent
  */
 export class MatrixIPCServer {
   private socketPath: string;
   private messageHandler: ProactiveMessageHandler;
+  private imageHandler: ImageMessageHandler | null = null;
   private listener: Deno.Listener | null = null;
   private connections: Deno.Conn[] = [];
   private running = false;
 
-  constructor(socketPath: string, messageHandler: ProactiveMessageHandler) {
+  constructor(
+    socketPath: string,
+    messageHandler: ProactiveMessageHandler,
+    imageHandler?: ImageMessageHandler,
+  ) {
     this.socketPath = socketPath;
     this.messageHandler = messageHandler;
+    this.imageHandler = imageHandler || null;
   }
 
   /**
@@ -162,6 +175,16 @@ export class MatrixIPCServer {
   ): Promise<ProactiveResponse> {
     if (message.type === 'proactive_message') {
       return await this.messageHandler(message as unknown as ProactiveMessage);
+    }
+
+    if (message.type === 'agent_image') {
+      if (!this.imageHandler) {
+        return {
+          type: 'error',
+          error: 'No image handler configured',
+        };
+      }
+      return await this.imageHandler(message as unknown as AgentImageMessage);
     }
 
     return {

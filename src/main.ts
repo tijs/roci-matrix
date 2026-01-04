@@ -3,7 +3,7 @@
  */
 
 import { loadConfig } from './config.ts';
-import { createMatrixClient, sendTextMessage, startClient } from './matrix/client.ts';
+import { createMatrixClient, sendImage, sendTextMessage, startClient } from './matrix/client.ts';
 import { setupEncryptionListeners, verifyEncryption } from './matrix/crypto.ts';
 import { setupAutoVerification } from './matrix/verification.ts';
 import { AgentIPCClient } from './ipc/agent-client.ts';
@@ -12,7 +12,13 @@ import { handleTextMessage } from './handlers/message.ts';
 import { handleImageMessage } from './handlers/image.ts';
 import { handleFileMessage } from './handlers/file.ts';
 import { handleReaction } from './handlers/reaction.ts';
-import type { Config, MatrixMessageEvent, ProactiveMessage, ProactiveResponse } from './types.ts';
+import type {
+  AgentImageMessage,
+  Config,
+  MatrixMessageEvent,
+  ProactiveMessage,
+  ProactiveResponse,
+} from './types.ts';
 import * as logger from './utils/logger.ts';
 import type { MatrixClient } from 'matrix-bot-sdk';
 
@@ -51,6 +57,9 @@ async function main() {
       config.ipcServerPath,
       async (message: ProactiveMessage): Promise<ProactiveResponse> => {
         return await handleProactiveMessage(client, message);
+      },
+      async (message: AgentImageMessage): Promise<ProactiveResponse> => {
+        return await handleAgentImageMessage(client, message);
       },
     );
 
@@ -132,6 +141,42 @@ async function handleProactiveMessage(
     };
   } catch (error) {
     logger.error('Failed to send proactive message', error);
+
+    return {
+      type: 'error',
+      error: String(error),
+    };
+  }
+}
+
+/**
+ * Handle image message from agent
+ */
+async function handleAgentImageMessage(
+  client: MatrixClient,
+  message: AgentImageMessage,
+): Promise<ProactiveResponse> {
+  try {
+    logger.info(`🖼️ Image message from agent: ${message.images.length} image(s)`);
+
+    // Send each image
+    for (const image of message.images) {
+      await sendImage(client, message.room_id, image);
+    }
+
+    // Send caption if provided
+    if (message.caption) {
+      await sendTextMessage(client, message.room_id, message.caption);
+    }
+
+    logger.success(`Sent ${message.images.length} image(s)`);
+
+    return {
+      type: 'success',
+      message: `Sent ${message.images.length} image(s)`,
+    };
+  } catch (error) {
+    logger.error('Failed to send image message', error);
 
     return {
       type: 'error',

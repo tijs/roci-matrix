@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-04
+
+### Added
+
+- **Image upload capability** - Send generated images to Matrix rooms
+  - New `uploadMedia()` function with E2E encryption support
+  - New `sendImage()` function for sending m.image events
+  - `getImageDimensions()` helper for PNG/JPEG dimension parsing
+  - New `agent_image` IPC message type for receiving images from roci-agent
+  - Handles encrypted and unencrypted rooms automatically
+
 ## [1.1.2] - 2026-01-03
 
 ### Changed

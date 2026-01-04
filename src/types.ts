@@ -139,6 +139,27 @@ export interface ProactiveMessage {
 }
 
 /**
+ * Image response from Agent → Matrix
+ * Sends generated images to the user
+ */
+export interface AgentImageMessage {
+  type: 'agent_image';
+  room_id: string;
+  images: ImageToSend[];
+  caption?: string;
+  timestamp: string;
+}
+
+/**
+ * Image to upload and send
+ */
+export interface ImageToSend {
+  file_path: string;
+  mime_type: string;
+  filename: string;
+}
+
+/**
  * Response to proactive message
  */
 export interface ProactiveResponse {

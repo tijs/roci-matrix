@@ -8,8 +8,9 @@ import {
   RustSdkCryptoStorageProvider,
   SimpleFsStorageProvider,
 } from 'matrix-bot-sdk';
-import type { Config } from '../types.ts';
+import type { Config, ImageToSend } from '../types.ts';
 import * as logger from '../utils/logger.ts';
+import { getImageDimensions, uploadMedia } from './media.ts';
 
 /**
  * Create and initialize Matrix client
@@ -168,4 +169,73 @@ export async function setTyping(
  */
 export async function getUserId(client: MatrixClient): Promise<string> {
   return await client.getUserId();
+}
+
+/**
+ * Send an image to a room
+ * Handles E2E encryption automatically for encrypted rooms
+ */
+export async function sendImage(
+  client: MatrixClient,
+  roomId: string,
+  image: ImageToSend,
+): Promise<string> {
+  try {
+    logger.info(`Uploading image: ${image.filename}`);
+
+    // Check if room is encrypted
+    let isEncrypted = false;
+    try {
+      const state = await client.getRoomStateEvent(
+        roomId,
+        'm.room.encryption',
+        '',
+      );
+      isEncrypted = state !== null;
+    } catch {
+      isEncrypted = false;
+    }
+
+    // Upload media (encrypted if room is encrypted)
+    const uploadResult = await uploadMedia(
+      client,
+      image.file_path,
+      image.mime_type,
+      image.filename,
+      isEncrypted,
+    );
+
+    // Get image dimensions
+    const dimensions = await getImageDimensions(image.file_path);
+
+    // Build message content
+    const content: Record<string, unknown> = {
+      msgtype: 'm.image',
+      body: image.filename,
+      info: {
+        mimetype: image.mime_type,
+        size: uploadResult.size,
+        ...(dimensions && { w: dimensions.width, h: dimensions.height }),
+      },
+    };
+
+    if (uploadResult.encrypted) {
+      // For encrypted media, use 'file' instead of 'url'
+      content.file = {
+        url: uploadResult.mxcUrl,
+        ...uploadResult.encrypted,
+      };
+    } else {
+      content.url = uploadResult.mxcUrl;
+    }
+
+    // Send the image message
+    const eventId = await client.sendMessage(roomId, content);
+    logger.success(`Sent image: ${image.filename} (${eventId})`);
+
+    return eventId;
+  } catch (error) {
+    logger.error(`Failed to send image: ${image.filename}`, error);
+    throw error;
+  }
 }
