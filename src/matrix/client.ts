@@ -145,6 +145,9 @@ export async function sendReaction(
 /**
  * Set typing indicator for room
  * Errors are logged but not thrown (typing is best-effort)
+ *
+ * Note: Matrix spec requires a timeout when typing=true.
+ * Default is 30 seconds, which gets refreshed by subsequent calls.
  */
 export async function setTyping(
   client: MatrixClient,
@@ -153,7 +156,9 @@ export async function setTyping(
   timeout?: number,
 ): Promise<void> {
   try {
-    await client.setTyping(roomId, typing, timeout);
+    // Matrix spec requires timeout when typing=true
+    const effectiveTimeout = typing ? (timeout ?? 30000) : undefined;
+    await client.setTyping(roomId, typing, effectiveTimeout);
     logger.debug(
       `Typing indicator ${typing ? 'started' : 'stopped'} for ${roomId}`,
     );
