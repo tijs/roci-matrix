@@ -96,7 +96,8 @@ export class MessageAggregator {
       const timeoutId = setTimeout(() => {
         // Timeout expired, no image arrived - process as text-only
         logger.debug(`Aggregation timeout for ${key}, processing text-only`);
-        this.pendingTexts.delete(key);
+        // NOTE: Don't delete here - the check after resolve() needs to find it
+        // to know we should call onTextOnly. handleImage deletes it if image arrives.
         resolve();
       }, this.aggregationWindowMs);
 
