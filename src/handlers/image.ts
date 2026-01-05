@@ -13,6 +13,7 @@ import * as logger from '../utils/logger.ts';
 
 /**
  * Handle image message event
+ * @param textContent - Optional text from a preceding m.text message (aggregated caption)
  */
 export async function handleImageMessage(
   client: MatrixClient,
@@ -20,6 +21,7 @@ export async function handleImageMessage(
   event: MatrixMessageEvent,
   config: Config,
   agentClient: AgentIPCClient,
+  textContent?: string,
 ): Promise<void> {
   try {
     // Get room info
@@ -37,7 +39,11 @@ export async function handleImageMessage(
       return;
     }
 
-    logger.info(`📷 Image from ${event.sender}`);
+    logger.info(
+      `📷 Image from ${event.sender}${
+        textContent ? ` (with text: "${textContent.slice(0, 50)}...")` : ''
+      }`,
+    );
 
     // Debug: Log full event content
     logger.debug(
@@ -172,12 +178,14 @@ jq 'select(.indexed == false)' metadata.jsonl
     logger.debug(`Metadata logged to ${metadataPath}`);
 
     // Forward to agent via IPC with file path instead of data
+    // Use textContent (from aggregated text message) if provided, otherwise use event body
+    // Note: event.content.body for images is typically the filename, not user text
     const ipcMessage = {
       type: 'user_message' as const,
       message_id: event.event_id,
       user_id: event.sender,
       room_id: roomId,
-      content: event.content.body || '',
+      content: textContent || event.content.body || '',
       image: {
         file_path: tempFile,
         mime_type: media.mimeType,

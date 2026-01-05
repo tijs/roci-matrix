@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-01-05
+
+### Fixed
+
+- **Image visibility with text+image messages** - Fix bug where images weren't
+  visible when sent with accompanying text
+  - Root cause: Element sends text+image as two separate events (m.text then
+    m.image)
+  - Text was processed first, agent responded "no image", then image arrived
+  - Added `MessageAggregator` class to buffer text messages and combine with
+    following images/files within 2-second window
+  - Images and files now receive the user's text as context instead of just the
+    filename
+
 ## [1.2.0] - 2026-01-04
 
 ### Added

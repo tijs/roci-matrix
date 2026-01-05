@@ -32,6 +32,7 @@ const ALLOWED_MIME_TYPES = [
 
 /**
  * Handle file message event
+ * @param textContent - Optional text from a preceding m.text message (aggregated caption)
  */
 export async function handleFileMessage(
   client: MatrixClient,
@@ -39,6 +40,7 @@ export async function handleFileMessage(
   event: MatrixMessageEvent,
   config: Config,
   agentClient: AgentIPCClient,
+  textContent?: string,
 ): Promise<void> {
   try {
     // Get room info
@@ -56,7 +58,11 @@ export async function handleFileMessage(
       return;
     }
 
-    logger.info(`📄 File from ${event.sender}`);
+    logger.info(
+      `📄 File from ${event.sender}${
+        textContent ? ` (with text: "${textContent.slice(0, 50)}...")` : ''
+      }`,
+    );
 
     // Extract metadata
     const filename = event.content.body || 'file';
@@ -191,12 +197,14 @@ jq 'select(.indexed == false)' metadata.jsonl
     logger.debug(`Metadata logged to ${metadataPath}`);
 
     // Forward to agent via IPC with file path instead of data
+    // Use textContent (from aggregated text message) if provided, otherwise use event body
+    // Note: event.content.body for files is typically the filename, not user text
     const ipcMessage = {
       type: 'user_message' as const,
       message_id: event.event_id,
       user_id: event.sender,
       room_id: roomId,
-      content: event.content.body || '',
+      content: textContent || event.content.body || '',
       attachments: [
         {
           type: 'document' as const,

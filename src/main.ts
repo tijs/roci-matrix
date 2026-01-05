@@ -12,6 +12,7 @@ import { handleTextMessage } from './handlers/message.ts';
 import { handleImageMessage } from './handlers/image.ts';
 import { handleFileMessage } from './handlers/file.ts';
 import { handleReaction } from './handlers/reaction.ts';
+import { MessageAggregator } from './utils/message-aggregator.ts';
 import type {
   AgentImageMessage,
   Config,
@@ -84,6 +85,13 @@ function setupEventListeners(
   config: Config,
   agentClient: AgentIPCClient,
 ): void {
+  // Message aggregator to combine text + image messages sent together
+  // When Element sends "Check this out" with an image, it sends TWO events:
+  // 1. m.text with the caption
+  // 2. m.image with the file
+  // The aggregator waits briefly for the image after receiving text
+  const aggregator = new MessageAggregator(2000); // 2 second window
+
   // Room message events (text, images, files)
   client.on(
     'room.message',
@@ -92,11 +100,40 @@ function setupEventListeners(
         const msgtype = event.content.msgtype;
 
         if (msgtype === 'm.text') {
-          await handleTextMessage(client, roomId, event, config, agentClient);
+          // Buffer text, wait for potential image
+          await aggregator.handleText(
+            roomId,
+            event,
+            // Called if no image arrives within window
+            async (roomId, textEvent) => {
+              await handleTextMessage(client, roomId, textEvent, config, agentClient);
+            },
+          );
         } else if (msgtype === 'm.image') {
-          await handleImageMessage(client, roomId, event, config, agentClient);
+          // Check for pending text to combine
+          await aggregator.handleImage(
+            roomId,
+            event,
+            async (roomId, imageEvent, textContent) => {
+              await handleImageMessage(
+                client,
+                roomId,
+                imageEvent,
+                config,
+                agentClient,
+                textContent,
+              );
+            },
+          );
         } else if (msgtype === 'm.file') {
-          await handleFileMessage(client, roomId, event, config, agentClient);
+          // Check for pending text to combine
+          await aggregator.handleFile(
+            roomId,
+            event,
+            async (roomId, fileEvent, textContent) => {
+              await handleFileMessage(client, roomId, fileEvent, config, agentClient, textContent);
+            },
+          );
         } else {
           logger.debug(`Ignoring message type: ${msgtype}`);
         }
@@ -117,7 +154,7 @@ function setupEventListeners(
     }
   });
 
-  logger.success('Event listeners configured');
+  logger.success('Event listeners configured (with message aggregation)');
 }
 
 /**
