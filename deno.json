@@ -18,7 +18,9 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "matrix-bot-sdk": "npm:matrix-bot-sdk@^0.7.1",
     "@sentry/deno": "npm:@sentry/node@^8.0.0",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.0",
+    "zod": "npm:zod@^3.24.1",
+    "@roci/shared": "../roci-shared/src/mod.ts"
   },
   "compilerOptions": {
     "strict": true,

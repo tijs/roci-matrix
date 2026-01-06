@@ -3,8 +3,11 @@
  * Receives proactive messages and image uploads from roci-agent
  */
 
+import { IncomingMatrixMessageSchema, type z } from '@roci/shared';
 import { decodeMessage, encodeMessage } from './protocol.ts';
 import type { AgentImageMessage, ProactiveMessage, ProactiveResponse } from '../types.ts';
+
+type IncomingMatrixMessage = z.infer<typeof IncomingMatrixMessageSchema>;
 
 /**
  * Handler for proactive messages
@@ -135,10 +138,19 @@ export class MatrixIPCServer {
           buffer = new Uint8Array(remaining);
 
           try {
-            debugPrint(`📨 IPC received: ${message.type}`);
+            // Validate message at IPC boundary
+            const parsed = IncomingMatrixMessageSchema.safeParse(message);
+            if (!parsed.success) {
+              debugPrint(`⚠️ Invalid IPC message: ${parsed.error.message}`);
+              await this.sendError(conn, `Invalid message format: ${parsed.error.message}`);
+              continue;
+            }
 
-            // Handle message
-            const response = await this.handleMessage(message);
+            const validMessage = parsed.data;
+            debugPrint(`📨 IPC received: ${validMessage.type}`);
+
+            // Handle validated message
+            const response = await this.handleMessage(validMessage);
 
             // Send response
             const writer = conn.writable.getWriter();
@@ -168,10 +180,10 @@ export class MatrixIPCServer {
   }
 
   /**
-   * Handle incoming message
+   * Handle incoming message (validated by IncomingMatrixMessageSchema)
    */
   private async handleMessage(
-    message: Record<string, unknown>,
+    message: IncomingMatrixMessage,
   ): Promise<ProactiveResponse> {
     if (message.type === 'proactive_message') {
       return await this.messageHandler(message as unknown as ProactiveMessage);
@@ -187,9 +199,10 @@ export class MatrixIPCServer {
       return await this.imageHandler(message as unknown as AgentImageMessage);
     }
 
+    // This should never happen since schema validation covers all types
     return {
       type: 'error',
-      error: `Unknown message type: ${message.type}`,
+      error: `Unknown message type: ${(message as { type: string }).type}`,
     };
   }
 
