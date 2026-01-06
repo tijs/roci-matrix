@@ -8,6 +8,7 @@ import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
 import { downloadMedia } from '../matrix/media.ts';
 import { validateAuthorization } from '../utils/auth.ts';
+import { getExtensionFromMimeType } from '../utils/media-validation.ts';
 import * as logger from '../utils/logger.ts';
 
 // File size limit (50MB)
@@ -165,8 +166,8 @@ jq 'select(.indexed == false)' metadata.jsonl
       );
     }
 
-    // Get file extension from mime type or filename
-    const ext = filename.split('.').pop() || 'pdf';
+    // Get file extension from MIME type (preferred) or filename (fallback)
+    const ext = getExtensionFromMimeType(mimeType, filename);
     const tempFile = `${tempDir}/${event.event_id}.${ext}`;
 
     // Decode base64 and write to file
