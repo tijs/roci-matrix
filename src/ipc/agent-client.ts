@@ -85,13 +85,23 @@ export class AgentIPCClient {
   private async readResponseWithTimeout(
     conn: Deno.Conn,
   ): Promise<Record<string, unknown>> {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('timeout')), this.timeout);
-    });
+    let timeoutHandle: number | undefined;
 
-    const readPromise = this.readResponse(conn);
-
-    return await Promise.race([readPromise, timeoutPromise]);
+    try {
+      return await new Promise((resolve, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error('timeout')),
+          this.timeout,
+        );
+        this.readResponse(conn)
+          .then(resolve)
+          .catch(reject);
+      });
+    } finally {
+      if (timeoutHandle !== undefined) {
+        clearTimeout(timeoutHandle);
+      }
+    }
   }
 
   /**
