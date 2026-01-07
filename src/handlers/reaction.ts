@@ -60,7 +60,8 @@ export async function handleReaction(
       timestamp: new Date(event.origin_server_ts).toISOString(),
     };
 
-    // Send to agent (don't wait for response)
+    // Fire-and-forget: reactions are informational, don't need response
+    // Failures logged but non-critical (reactions enhance UX, not core functionality)
     agentClient.sendMessage(ipcMessage).catch((error) => {
       logger.error('Failed to send reaction to agent', error);
     });

@@ -197,8 +197,8 @@ export class MessageAggregator {
       this.pending.delete(key);
       // Signal that media won't claim it (resolve with false so original handler doesn't process)
       existing.resolve();
-      // Call the stored callback to process the old text
-      // Fire-and-forget: don't await, let new text continue
+      // Fire-and-forget: process old text in background while handling new text
+      // Failures logged but non-critical (superseded text is already stale)
       existing.onTextOnly(existing.roomId, existing.event).catch((err) => {
         logger.error(`Error processing superseded text: ${err}`);
       });
