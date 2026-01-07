@@ -10,19 +10,38 @@
  * "I don't have an image" before the image arrives.
  *
  * Solution: Buffer text messages briefly, combine with image if one follows quickly.
+ *
+ * Implementation: Uses explicit state machine to avoid race conditions between
+ * timeout handler and media handlers.
  */
 
 import type { MatrixMessageEvent } from '../types.ts';
 import * as logger from './logger.ts';
 
 /**
- * Pending text message waiting for potential image
+ * Aggregation state machine states
  */
-interface PendingText {
+export enum AggregationState {
+  /** Waiting for potential image/file to arrive */
+  WAITING_FOR_MEDIA = 'WAITING_FOR_MEDIA',
+  /** Image/file arrived and claimed the text */
+  COMBINED_WITH_MEDIA = 'COMBINED_WITH_MEDIA',
+  /** Timeout fired and claimed the text for text-only processing */
+  PROCESSED_AS_TEXT = 'PROCESSED_AS_TEXT',
+}
+
+/**
+ * Pending text message with state tracking
+ */
+interface PendingEntry {
+  state: AggregationState;
   roomId: string;
   event: MatrixMessageEvent;
   timeoutId: number;
+  /** Resolves the handleText promise when state transitions */
   resolve: () => void;
+  /** Callback to process as text-only (stored for supersession handling) */
+  onTextOnly: TextOnlyHandler;
 }
 
 /**
@@ -33,6 +52,15 @@ export interface AggregatedMessage {
   textEvent?: MatrixMessageEvent;
   imageEvent?: MatrixMessageEvent;
   fileEvent?: MatrixMessageEvent;
+}
+
+/**
+ * Result of an atomic claim operation
+ */
+export interface ClaimResult {
+  success: boolean;
+  event?: MatrixMessageEvent;
+  textContent?: string;
 }
 
 /**
@@ -51,13 +79,19 @@ export type FileHandler = (
 ) => Promise<void>;
 
 /**
- * Message aggregator that combines text + media messages
+ * Message aggregator using explicit state machine
+ *
+ * State transitions:
+ * - WAITING_FOR_MEDIA → COMBINED_WITH_MEDIA (media arrived first)
+ * - WAITING_FOR_MEDIA → PROCESSED_AS_TEXT (timeout fired first)
+ *
+ * Atomic claim methods ensure only one handler can claim a pending entry.
  */
 export class MessageAggregator {
   // Pending text messages keyed by "roomId:senderId"
-  private pendingTexts: Map<string, PendingText> = new Map();
+  private pending: Map<string, PendingEntry> = new Map();
 
-  // How long to wait for an image after receiving text (ms)
+  // How long to wait for media after receiving text (ms)
   private readonly aggregationWindowMs: number;
 
   constructor(aggregationWindowMs = 2000) {
@@ -72,8 +106,79 @@ export class MessageAggregator {
   }
 
   /**
+   * Atomically claim pending text for media combination.
+   * Returns the text event only if state was WAITING_FOR_MEDIA.
+   * Transitions state to COMBINED_WITH_MEDIA if successful.
+   */
+  claimForMedia(key: string): ClaimResult {
+    const entry = this.pending.get(key);
+
+    if (!entry) {
+      return { success: false };
+    }
+
+    if (entry.state !== AggregationState.WAITING_FOR_MEDIA) {
+      // Already claimed by timeout or another handler
+      logger.debug(`Cannot claim ${key} for media: state is ${entry.state}`);
+      return { success: false };
+    }
+
+    // Atomically transition state
+    entry.state = AggregationState.COMBINED_WITH_MEDIA;
+    clearTimeout(entry.timeoutId);
+
+    const textContent = entry.event.content.body;
+    const event = entry.event;
+
+    // Clean up and resolve the waiting promise
+    this.pending.delete(key);
+    entry.resolve();
+
+    logger.debug(`Claimed ${key} for media combination`);
+    return { success: true, event, textContent };
+  }
+
+  /**
+   * Atomically claim pending text for text-only processing.
+   * Returns the text event only if state was WAITING_FOR_MEDIA.
+   * Transitions state to PROCESSED_AS_TEXT if successful.
+   */
+  claimForTimeout(key: string, eventId: string): ClaimResult {
+    const entry = this.pending.get(key);
+
+    if (!entry) {
+      return { success: false };
+    }
+
+    // Verify this is the same event (not a newer text that replaced it)
+    if (entry.event.event_id !== eventId) {
+      logger.debug(
+        `Event ID mismatch for ${key}: expected ${eventId}, got ${entry.event.event_id}`,
+      );
+      return { success: false };
+    }
+
+    if (entry.state !== AggregationState.WAITING_FOR_MEDIA) {
+      // Already claimed by media handler
+      logger.debug(`Cannot claim ${key} for timeout: state is ${entry.state}`);
+      return { success: false };
+    }
+
+    // Atomically transition state
+    entry.state = AggregationState.PROCESSED_AS_TEXT;
+
+    const event = entry.event;
+
+    // Clean up (don't resolve - the timeout handler will continue)
+    this.pending.delete(key);
+
+    logger.debug(`Claimed ${key} for text-only processing`);
+    return { success: true, event };
+  }
+
+  /**
    * Handle incoming text message
-   * Buffers it briefly waiting for potential image follow-up
+   * Buffers it briefly waiting for potential media follow-up
    */
   async handleText(
     roomId: string,
@@ -83,42 +188,47 @@ export class MessageAggregator {
     const key = this.getKey(roomId, event.sender);
 
     // Clear any existing pending text for this user/room
-    const existing = this.pendingTexts.get(key);
+    const existing = this.pending.get(key);
     if (existing) {
       clearTimeout(existing.timeoutId);
       // Process the old text immediately since new text arrived
       logger.debug(`New text arrived, processing previous text immediately`);
+      existing.state = AggregationState.PROCESSED_AS_TEXT;
+      this.pending.delete(key);
+      // Signal that media won't claim it (resolve with false so original handler doesn't process)
       existing.resolve();
+      // Call the stored callback to process the old text
+      // Fire-and-forget: don't await, let new text continue
+      existing.onTextOnly(existing.roomId, existing.event).catch((err) => {
+        logger.error(`Error processing superseded text: ${err}`);
+      });
     }
 
-    // Create a promise that resolves when we should process this text
-    await new Promise<void>((resolve) => {
+    // Create a promise that resolves with whether to process
+    const shouldProcessAsText = await new Promise<boolean>((resolve) => {
       const timeoutId = setTimeout(() => {
-        // Timeout expired, no image arrived - process as text-only
-        logger.debug(`Aggregation timeout for ${key}, processing text-only`);
-        // NOTE: Don't delete here - the check after resolve() needs to find it
-        // to know we should call onTextOnly. handleImage deletes it if image arrives.
-        resolve();
+        // Try to claim for text-only processing
+        const result = this.claimForTimeout(key, event.event_id);
+        resolve(result.success);
       }, this.aggregationWindowMs);
 
-      // Store pending text
-      this.pendingTexts.set(key, {
+      // Store pending entry in WAITING state
+      this.pending.set(key, {
+        state: AggregationState.WAITING_FOR_MEDIA,
         roomId,
         event,
         timeoutId: timeoutId as unknown as number,
-        resolve,
+        resolve: () => resolve(false), // Media claimed it, don't process as text
+        onTextOnly, // Store callback for supersession handling
       });
 
       logger.debug(
-        `Buffering text message from ${event.sender}, waiting ${this.aggregationWindowMs}ms for image`,
+        `Buffering text message from ${event.sender}, waiting ${this.aggregationWindowMs}ms for media`,
       );
     });
 
-    // If we get here and still have the pending text, process it
-    // (The pending text might have been consumed by handleImage already)
-    const stillPending = this.pendingTexts.get(key);
-    if (stillPending && stillPending.event.event_id === event.event_id) {
-      this.pendingTexts.delete(key);
+    // Only process as text if we successfully claimed it
+    if (shouldProcessAsText) {
       await onTextOnly(roomId, event);
     }
   }
@@ -134,24 +244,14 @@ export class MessageAggregator {
   ): Promise<void> {
     const key = this.getKey(roomId, event.sender);
 
-    // Check for pending text from same user
-    const pendingText = this.pendingTexts.get(key);
+    // Try to claim pending text
+    const claim = this.claimForMedia(key);
 
-    if (pendingText) {
-      // Found pending text - combine them!
-      clearTimeout(pendingText.timeoutId);
-      this.pendingTexts.delete(key);
-
-      const textContent = pendingText.event.content.body;
-      logger.info(`Combining text "${textContent.slice(0, 50)}..." with image`);
-
-      // Resolve the pending text's promise (it won't process since we deleted it)
-      pendingText.resolve();
-
-      // Process combined message
-      await onImage(roomId, event, textContent);
+    if (claim.success && claim.textContent) {
+      logger.info(`Combining text "${claim.textContent.slice(0, 50)}..." with image`);
+      await onImage(roomId, event, claim.textContent);
     } else {
-      // No pending text - process image alone
+      // No pending text or couldn't claim - process image alone
       await onImage(roomId, event);
     }
   }
@@ -167,35 +267,42 @@ export class MessageAggregator {
   ): Promise<void> {
     const key = this.getKey(roomId, event.sender);
 
-    // Check for pending text from same user
-    const pendingText = this.pendingTexts.get(key);
+    // Try to claim pending text
+    const claim = this.claimForMedia(key);
 
-    if (pendingText) {
-      // Found pending text - combine them!
-      clearTimeout(pendingText.timeoutId);
-      this.pendingTexts.delete(key);
-
-      const textContent = pendingText.event.content.body;
-      logger.info(`Combining text "${textContent.slice(0, 50)}..." with file`);
-
-      // Resolve the pending text's promise
-      pendingText.resolve();
-
-      // Process combined message
-      await onFile(roomId, event, textContent);
+    if (claim.success && claim.textContent) {
+      logger.info(`Combining text "${claim.textContent.slice(0, 50)}..." with file`);
+      await onFile(roomId, event, claim.textContent);
     } else {
-      // No pending text - process file alone
+      // No pending text or couldn't claim - process file alone
       await onFile(roomId, event);
     }
   }
 
   /**
-   * Clean up any pending timeouts
+   * Get current state for a key (for testing)
+   */
+  getState(roomId: string, senderId: string): AggregationState | undefined {
+    const key = this.getKey(roomId, senderId);
+    return this.pending.get(key)?.state;
+  }
+
+  /**
+   * Get pending count (for testing)
+   */
+  getPendingCount(): number {
+    return this.pending.size;
+  }
+
+  /**
+   * Clean up any pending timeouts and resolve pending promises
    */
   cleanup(): void {
-    for (const pending of this.pendingTexts.values()) {
-      clearTimeout(pending.timeoutId);
+    for (const entry of this.pending.values()) {
+      clearTimeout(entry.timeoutId);
+      // Resolve the promise so handleText() doesn't hang
+      entry.resolve();
     }
-    this.pendingTexts.clear();
+    this.pending.clear();
   }
 }
