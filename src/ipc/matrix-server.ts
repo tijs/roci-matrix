@@ -33,6 +33,9 @@ export class MatrixIPCServer {
   private listener: Deno.Listener | null = null;
   private connections: Deno.Conn[] = [];
   private running = false;
+  private shuttingDown = false;
+  private inFlightCount = 0;
+  private readonly SHUTDOWN_TIMEOUT_MS = 5000;
 
   constructor(
     socketPath: string,
@@ -138,6 +141,13 @@ export class MatrixIPCServer {
           buffer = new Uint8Array(remaining);
 
           try {
+            // Reject new messages during shutdown
+            if (this.shuttingDown) {
+              debugPrint('⚠️ Rejecting message during shutdown');
+              await this.sendError(conn, 'Server is shutting down');
+              continue;
+            }
+
             // Validate message at IPC boundary
             const parsed = IncomingMatrixMessageSchema.safeParse(message);
             if (!parsed.success) {
@@ -149,13 +159,19 @@ export class MatrixIPCServer {
             const validMessage = parsed.data;
             debugPrint(`📨 IPC received: ${validMessage.type}`);
 
-            // Handle validated message
-            const response = await this.handleMessage(validMessage);
+            // Track in-flight operations for graceful shutdown
+            this.inFlightCount++;
+            try {
+              // Handle validated message
+              const response = await this.handleMessage(validMessage);
 
-            // Send response
-            const writer = conn.writable.getWriter();
-            await writer.write(encodeMessage(response));
-            writer.releaseLock();
+              // Send response
+              const writer = conn.writable.getWriter();
+              await writer.write(encodeMessage(response));
+              writer.releaseLock();
+            } finally {
+              this.inFlightCount--;
+            }
           } catch (error) {
             debugPrint(`❌ Error processing message: ${error}`);
             await this.sendError(conn, (error as Error).message);
@@ -228,12 +244,64 @@ export class MatrixIPCServer {
   }
 
   /**
-   * Stop the server
+   * Stop the server gracefully
+   * Waits for in-flight operations to complete before exiting
    */
   stop(): void {
-    debugPrint('🛑 Stopping IPC server...');
+    if (this.shuttingDown) return; // Prevent double shutdown
+    this.shuttingDown = true;
+
+    debugPrint('🛑 Initiating graceful shutdown...');
     this.running = false;
 
+    // Close listener to stop accepting new connections
+    if (this.listener) {
+      try {
+        this.listener.close();
+      } catch {
+        // Ignore close errors
+      }
+      this.listener = null;
+    }
+
+    // Wait for in-flight operations with timeout
+    this.waitForShutdown();
+  }
+
+  /**
+   * Wait for in-flight operations to complete, then exit
+   */
+  private waitForShutdown(): void {
+    const startTime = Date.now();
+
+    const checkAndExit = () => {
+      const elapsed = Date.now() - startTime;
+
+      if (this.inFlightCount === 0) {
+        debugPrint('✅ All in-flight operations completed, exiting...');
+        this.cleanup();
+        Deno.exit(0);
+      } else if (elapsed >= this.SHUTDOWN_TIMEOUT_MS) {
+        debugPrint(
+          `⚠️ Shutdown timeout (${this.inFlightCount} operations still in flight), forcing exit...`,
+        );
+        this.cleanup();
+        Deno.exit(1);
+      } else {
+        debugPrint(
+          `⏳ Waiting for ${this.inFlightCount} in-flight operations... (${elapsed}ms)`,
+        );
+        setTimeout(checkAndExit, 100);
+      }
+    };
+
+    checkAndExit();
+  }
+
+  /**
+   * Clean up resources before exit
+   */
+  private cleanup(): void {
     // Close all connections
     for (const conn of this.connections) {
       try {
@@ -244,24 +312,12 @@ export class MatrixIPCServer {
     }
     this.connections = [];
 
-    // Close listener
-    if (this.listener) {
-      try {
-        this.listener.close();
-      } catch {
-        // Ignore close errors
-      }
-      this.listener = null;
-    }
-
     // Remove socket file
     try {
       Deno.removeSync(this.socketPath);
     } catch {
       // Ignore errors
     }
-
-    Deno.exit(0);
   }
 }
 
