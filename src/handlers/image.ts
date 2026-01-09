@@ -3,6 +3,7 @@
  */
 
 import { MatrixClient } from 'matrix-bot-sdk';
+import { generateCorrelationId } from '@roci/shared';
 import type { AgentResponse, Config, EncryptedMediaInfo, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
@@ -39,8 +40,11 @@ export async function handleImageMessage(
       return;
     }
 
+    // Generate correlation ID for request tracing
+    const correlationId = generateCorrelationId();
+
     logger.info(
-      `📷 Image from ${event.sender}${
+      `📷 [${correlationId}] Image from ${event.sender}${
         textContent ? ` (with text: "${textContent.slice(0, 50)}...")` : ''
       }`,
     );
@@ -195,6 +199,7 @@ jq 'select(.indexed == false)' metadata.jsonl
         size: media.size,
       },
       timestamp: new Date(event.origin_server_ts).toISOString(),
+      correlationId,
     };
 
     // Natural delay before starting typing

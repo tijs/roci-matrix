@@ -3,6 +3,7 @@
  */
 
 import { MatrixClient } from 'matrix-bot-sdk';
+import { generateCorrelationId } from '@roci/shared';
 import type { Config, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo } from '../matrix/client.ts';
@@ -45,8 +46,11 @@ export async function handleReaction(
     const targetEventId = relatesTo.event_id;
     const reaction = relatesTo.key || '';
 
+    // Generate correlation ID for request tracing
+    const correlationId = generateCorrelationId();
+
     logger.info(
-      `👍 Reaction from ${event.sender}: ${reaction} on ${targetEventId}`,
+      `👍 [${correlationId}] Reaction from ${event.sender}: ${reaction} on ${targetEventId}`,
     );
 
     // Forward to agent via IPC (fire-and-forget, no response needed)
@@ -58,6 +62,7 @@ export async function handleReaction(
       reacted_to_event_id: targetEventId,
       reaction: reaction,
       timestamp: new Date(event.origin_server_ts).toISOString(),
+      correlationId,
     };
 
     // Fire-and-forget: reactions are informational, don't need response

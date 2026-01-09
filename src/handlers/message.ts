@@ -3,6 +3,7 @@
  */
 
 import { MatrixClient } from 'matrix-bot-sdk';
+import { generateCorrelationId } from '@roci/shared';
 import type { AgentResponse, Config, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
@@ -38,7 +39,10 @@ export async function handleTextMessage(
     // Extract message content
     const content = event.content.body;
 
-    logger.info(`📨 Message from ${event.sender}: ${content.slice(0, 100)}`);
+    // Generate correlation ID for request tracing
+    const correlationId = generateCorrelationId();
+
+    logger.info(`📨 [${correlationId}] Message from ${event.sender}: ${content.slice(0, 100)}`);
 
     // Forward to agent via IPC
     const ipcMessage = {
@@ -48,6 +52,7 @@ export async function handleTextMessage(
       room_id: roomId,
       content: content,
       timestamp: new Date(event.origin_server_ts).toISOString(),
+      correlationId,
     };
 
     // Natural delay before starting typing

@@ -3,6 +3,7 @@
  */
 
 import { MatrixClient } from 'matrix-bot-sdk';
+import { generateCorrelationId } from '@roci/shared';
 import type { AgentResponse, Config, EncryptedMediaInfo, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
@@ -59,8 +60,11 @@ export async function handleFileMessage(
       return;
     }
 
+    // Generate correlation ID for request tracing
+    const correlationId = generateCorrelationId();
+
     logger.info(
-      `📄 File from ${event.sender}${
+      `📄 [${correlationId}] File from ${event.sender}${
         textContent ? ` (with text: "${textContent.slice(0, 50)}...")` : ''
       }`,
     );
@@ -216,6 +220,7 @@ jq 'select(.indexed == false)' metadata.jsonl
         },
       ],
       timestamp: new Date(event.origin_server_ts).toISOString(),
+      correlationId,
     };
 
     logger.debug(`IPC message prepared, data size: ${media.data.length} chars`);
