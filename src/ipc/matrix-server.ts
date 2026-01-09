@@ -152,7 +152,10 @@ export class MatrixIPCServer {
             const parsed = IncomingMatrixMessageSchema.safeParse(message);
             if (!parsed.success) {
               debugPrint(`⚠️ Invalid IPC message: ${parsed.error.message}`);
-              await this.sendError(conn, `Invalid message format: ${parsed.error.message}`);
+              await this.sendError(
+                conn,
+                `Invalid message format: ${parsed.error.message}`,
+              );
               continue;
             }
 

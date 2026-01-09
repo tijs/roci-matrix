@@ -42,17 +42,26 @@ Deno.test('getExtensionFromMimeType - markdown', () => {
 
 Deno.test('getExtensionFromMimeType - falls back to filename extension', () => {
   // Unknown MIME type, should use filename extension
-  assertEquals(getExtensionFromMimeType('application/octet-stream', 'file.xyz'), 'xyz');
+  assertEquals(
+    getExtensionFromMimeType('application/octet-stream', 'file.xyz'),
+    'xyz',
+  );
 });
 
 Deno.test('getExtensionFromMimeType - defaults to pdf for unknown', () => {
   // Unknown MIME type and no valid extension
-  assertEquals(getExtensionFromMimeType('application/octet-stream', 'document'), 'pdf');
+  assertEquals(
+    getExtensionFromMimeType('application/octet-stream', 'document'),
+    'pdf',
+  );
 });
 
 Deno.test('getExtensionFromMimeType - ignores long extensions', () => {
   // Extension too long (>5 chars), should default
-  assertEquals(getExtensionFromMimeType('application/octet-stream', 'file.verylongext'), 'pdf');
+  assertEquals(
+    getExtensionFromMimeType('application/octet-stream', 'file.verylongext'),
+    'pdf',
+  );
 });
 
 Deno.test('normalizeImageMimeType - jpeg variations', () => {

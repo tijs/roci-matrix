@@ -35,7 +35,8 @@ and this project adheres to
 
 ### Changed
 
-- **Secrets Documentation** - Updated documentation to reflect secrets management
+- **Secrets Documentation** - Updated documentation to reflect secrets
+  management
   - Removed `MATRIX_ACCESS_TOKEN` from `.env.example` (now in secrets.conf)
   - Updated CLAUDE.md with clear separation of secrets vs config
   - Follows project-wide secrets management pattern

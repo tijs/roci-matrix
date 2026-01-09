@@ -66,7 +66,10 @@ export interface ClaimResult {
 /**
  * Callback types for message handling
  */
-export type TextOnlyHandler = (roomId: string, event: MatrixMessageEvent) => Promise<void>;
+export type TextOnlyHandler = (
+  roomId: string,
+  event: MatrixMessageEvent,
+) => Promise<void>;
 export type ImageHandler = (
   roomId: string,
   imageEvent: MatrixMessageEvent,
@@ -248,7 +251,9 @@ export class MessageAggregator {
     const claim = this.claimForMedia(key);
 
     if (claim.success && claim.textContent) {
-      logger.info(`Combining text "${claim.textContent.slice(0, 50)}..." with image`);
+      logger.info(
+        `Combining text "${claim.textContent.slice(0, 50)}..." with image`,
+      );
       await onImage(roomId, event, claim.textContent);
     } else {
       // No pending text or couldn't claim - process image alone
@@ -271,7 +276,9 @@ export class MessageAggregator {
     const claim = this.claimForMedia(key);
 
     if (claim.success && claim.textContent) {
-      logger.info(`Combining text "${claim.textContent.slice(0, 50)}..." with file`);
+      logger.info(
+        `Combining text "${claim.textContent.slice(0, 50)}..." with file`,
+      );
       await onFile(roomId, event, claim.textContent);
     } else {
       // No pending text or couldn't claim - process file alone

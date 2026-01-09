@@ -6,7 +6,9 @@ import type { MatrixMessageEvent } from '../../src/types.ts';
 /**
  * Create a mock MatrixMessageEvent for testing
  */
-function createMockEvent(overrides: Partial<MatrixMessageEvent> = {}): MatrixMessageEvent {
+function createMockEvent(
+  overrides: Partial<MatrixMessageEvent> = {},
+): MatrixMessageEvent {
   return {
     event_id: `$event_${Math.random().toString(36).slice(2)}`,
     sender: '@user:example.com',
@@ -45,7 +47,11 @@ describe('MessageAggregator', () => {
       const event = createMockEvent();
 
       // Start handling text (don't await - we want to check state mid-flight)
-      const promise = aggregator.handleText(roomId, event, () => Promise.resolve());
+      const promise = aggregator.handleText(
+        roomId,
+        event,
+        () => Promise.resolve(),
+      );
 
       // Give it a moment to set up
       await delay(10);
@@ -103,16 +109,26 @@ describe('MessageAggregator', () => {
       // Wait for text handler to complete
       await textPromise;
 
-      assertEquals(textProcessed, false, 'Text should NOT be processed separately');
+      assertEquals(
+        textProcessed,
+        false,
+        'Text should NOT be processed separately',
+      );
       assertEquals(imageProcessed, true, 'Image should be processed');
-      assertEquals(combinedText, 'Check this image', 'Text should be combined with image');
+      assertEquals(
+        combinedText,
+        'Check this image',
+        'Text should be combined with image',
+      );
       assertEquals(aggregator.getPendingCount(), 0);
     });
   });
 
   describe('Race Condition: Image arrives before timeout', () => {
     it('should combine text with image when image arrives first', async () => {
-      const textEvent = createMockEvent({ content: { msgtype: 'm.text', body: 'Caption text' } });
+      const textEvent = createMockEvent({
+        content: { msgtype: 'm.text', body: 'Caption text' },
+      });
       const imageEvent = createMockEvent({
         event_id: '$img',
         content: { msgtype: 'm.image', body: 'photo.jpg' },
@@ -140,7 +156,9 @@ describe('MessageAggregator', () => {
 
   describe('Race Condition: Timeout fires before image', () => {
     it('should process text alone when timeout fires first', async () => {
-      const textEvent = createMockEvent({ content: { msgtype: 'm.text', body: 'Just text' } });
+      const textEvent = createMockEvent({
+        content: { msgtype: 'm.text', body: 'Just text' },
+      });
       const imageEvent = createMockEvent({
         event_id: '$late_img',
         content: { msgtype: 'm.image', body: 'late.jpg' },
@@ -214,7 +232,11 @@ describe('MessageAggregator', () => {
 
       let combinedText: string | undefined;
 
-      const textPromise = aggregator.handleText(roomId, textEvent, () => Promise.resolve());
+      const textPromise = aggregator.handleText(
+        roomId,
+        textEvent,
+        () => Promise.resolve(),
+      );
 
       await delay(20);
 
@@ -285,7 +307,11 @@ describe('MessageAggregator', () => {
     it('claimForMedia should fail if already claimed', async () => {
       const event = createMockEvent();
 
-      const promise = aggregator.handleText(roomId, event, () => Promise.resolve());
+      const promise = aggregator.handleText(
+        roomId,
+        event,
+        () => Promise.resolve(),
+      );
 
       await delay(10);
 
@@ -307,7 +333,11 @@ describe('MessageAggregator', () => {
       const event = createMockEvent();
 
       // Start handling (don't await)
-      const promise = aggregator.handleText(roomId, event, () => Promise.resolve());
+      const promise = aggregator.handleText(
+        roomId,
+        event,
+        () => Promise.resolve(),
+      );
 
       await delay(10);
       assertEquals(aggregator.getPendingCount(), 1);

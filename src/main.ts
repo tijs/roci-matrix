@@ -106,7 +106,13 @@ function setupEventListeners(
             event,
             // Called if no image arrives within window
             async (roomId, textEvent) => {
-              await handleTextMessage(client, roomId, textEvent, config, agentClient);
+              await handleTextMessage(
+                client,
+                roomId,
+                textEvent,
+                config,
+                agentClient,
+              );
             },
           );
         } else if (msgtype === 'm.image') {
@@ -131,7 +137,14 @@ function setupEventListeners(
             roomId,
             event,
             async (roomId, fileEvent, textContent) => {
-              await handleFileMessage(client, roomId, fileEvent, config, agentClient, textContent);
+              await handleFileMessage(
+                client,
+                roomId,
+                fileEvent,
+                config,
+                agentClient,
+                textContent,
+              );
             },
           );
         } else {
@@ -194,7 +207,9 @@ async function handleAgentImageMessage(
   message: AgentImageMessage,
 ): Promise<ProactiveResponse> {
   try {
-    logger.info(`🖼️ Image message from agent: ${message.images.length} image(s)`);
+    logger.info(
+      `🖼️ Image message from agent: ${message.images.length} image(s)`,
+    );
 
     // Send each image
     for (const image of message.images) {

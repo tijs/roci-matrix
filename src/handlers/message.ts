@@ -42,7 +42,9 @@ export async function handleTextMessage(
     // Generate correlation ID for request tracing
     const correlationId = generateCorrelationId();
 
-    logger.info(`📨 [${correlationId}] Message from ${event.sender}: ${content.slice(0, 100)}`);
+    logger.info(
+      `📨 [${correlationId}] Message from ${event.sender}: ${content.slice(0, 100)}`,
+    );
 
     // Forward to agent via IPC
     const ipcMessage = {
