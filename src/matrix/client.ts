@@ -88,6 +88,21 @@ async function withRetry<T>(
 const SYNC_HTTP_TIMEOUT = 90_000;
 
 /**
+ * Room info cache to avoid repeated API calls
+ * Key: roomId, Value: { memberCount, encrypted, cachedAt }
+ */
+const roomInfoCache = new Map<
+  string,
+  { memberCount: number; encrypted: boolean; cachedAt: number }
+>();
+
+/**
+ * Room info cache TTL (5 minutes)
+ * Room membership rarely changes, so we can cache aggressively
+ */
+const ROOM_INFO_CACHE_TTL = 5 * 60 * 1000;
+
+/**
  * Create and initialize Matrix client
  */
 export function createMatrixClient(config: Config): MatrixClient {
@@ -168,33 +183,61 @@ export async function startClient(client: MatrixClient): Promise<void> {
 }
 
 /**
- * Get room information
+ * Get room information with caching and retry logic
+ * Caches results to avoid repeated API calls on every message
  */
 export async function getRoomInfo(
   client: MatrixClient,
   roomId: string,
 ): Promise<{ memberCount: number; encrypted: boolean }> {
+  // Check cache first
+  const cached = roomInfoCache.get(roomId);
+  if (cached && Date.now() - cached.cachedAt < ROOM_INFO_CACHE_TTL) {
+    logger.debug(`Room info cache hit for ${roomId}`);
+    return { memberCount: cached.memberCount, encrypted: cached.encrypted };
+  }
+
   try {
-    // Get joined members
-    const members = await client.getJoinedRoomMembers(roomId);
-    const memberCount = Object.keys(members).length;
+    // Fetch with retry logic
+    const result = await withRetry(async () => {
+      // Get joined members
+      const members = await client.getJoinedRoomMembers(roomId);
+      const memberCount = Object.keys(members).length;
 
-    // Check if room is encrypted
-    let encrypted = false;
-    try {
-      const state = await client.getRoomStateEvent(
-        roomId,
-        'm.room.encryption',
-        '',
-      );
-      encrypted = state !== null;
-    } catch {
-      // Not encrypted
-      encrypted = false;
-    }
+      // Check if room is encrypted
+      let encrypted = false;
+      try {
+        const state = await client.getRoomStateEvent(
+          roomId,
+          'm.room.encryption',
+          '',
+        );
+        encrypted = state !== null;
+      } catch {
+        // Not encrypted
+        encrypted = false;
+      }
 
-    return { memberCount, encrypted };
+      return { memberCount, encrypted };
+    }, `getRoomInfo for ${roomId}`);
+
+    // Cache the result
+    roomInfoCache.set(roomId, {
+      memberCount: result.memberCount,
+      encrypted: result.encrypted,
+      cachedAt: Date.now(),
+    });
+
+    logger.debug(
+      `Room info cached for ${roomId}: ${result.memberCount} members, encrypted=${result.encrypted}`,
+    );
+    return result;
   } catch (error) {
+    // If we have stale cache, use it as fallback
+    if (cached) {
+      logger.warn(`Using stale cache for ${roomId} due to error: ${error}`);
+      return { memberCount: cached.memberCount, encrypted: cached.encrypted };
+    }
     logger.error(`Failed to get room info for ${roomId}`, error);
     throw error;
   }

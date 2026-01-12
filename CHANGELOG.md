@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-01-12
+
+### Fixed
+
+- **Cache room info to avoid repeated API calls** - Room info (member count,
+  encryption status) is now cached for 5 minutes
+  - Previously called getJoinedRoomMembers on EVERY incoming message
+  - Now uses cache, falling back to stale cache on errors
+  - Added retry logic (3 attempts with exponential backoff)
+  - Significantly reduces API calls and timeout exposure
+
 ## [1.2.4] - 2026-01-12
 
 ### Fixed
