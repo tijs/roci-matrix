@@ -80,6 +80,14 @@ async function withRetry<T>(
 }
 
 /**
+ * Sync HTTP timeout configuration
+ * The SDK defaults to 40s for sync requests, but this can cause timeouts
+ * when the server is slow. We increase it to 90s to be safe.
+ * (30s long-poll + 60s buffer for slow responses)
+ */
+const SYNC_HTTP_TIMEOUT = 90_000;
+
+/**
  * Create and initialize Matrix client
  */
 export function createMatrixClient(config: Config): MatrixClient {
@@ -110,8 +118,30 @@ export function createMatrixClient(config: Config): MatrixClient {
     // @ts-ignore: deviceId property exists but may not be in types
     client.deviceId = config.deviceId;
 
+    // Patch doRequest to use longer timeout for sync operations
+    // The SDK hardcodes 40s for sync, which causes timeouts on slow servers
+    const originalDoRequest = client.doRequest.bind(client);
+    // @ts-ignore: Patching internal method
+    client.doRequest = function (
+      method: string,
+      endpoint: string,
+      qs?: unknown,
+      body?: unknown,
+      timeout?: number,
+      raw?: boolean,
+      contentType?: string,
+      noEncoding?: boolean,
+    ) {
+      // Use longer timeout for sync requests
+      if (endpoint.includes('/sync')) {
+        timeout = SYNC_HTTP_TIMEOUT;
+      }
+      return originalDoRequest(method, endpoint, qs, body, timeout, raw, contentType, noEncoding);
+    };
+
     logger.success(`Matrix client initialized for ${config.userId}`);
     logger.info(`Device ID: ${config.deviceId}`);
+    logger.info(`Sync HTTP timeout: ${SYNC_HTTP_TIMEOUT}ms`);
 
     return client;
   } catch (error) {
