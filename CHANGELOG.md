@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-01-12
+
+### Fixed
+
+- **Retry logic for Matrix message sends** - Add exponential backoff retry for
+  message sends to handle intermittent homeserver timeouts
+  - Added `withRetry()` helper with 3 attempts and exponential backoff (1s, 2s, 4s)
+  - Applied to `sendTextMessage()`, `sendReaction()`, and `sendImage()`
+  - Retries on ESOCKETTIMEDOUT, ETIMEDOUT, ECONNRESET, ECONNREFUSED errors
+  - Fixes intermittent "ESOCKETTIMEDOUT" errors when hamster.farm is slow
+
 ## [1.2.1] - 2026-01-05
 
 ### Fixed

@@ -13,6 +13,73 @@ import * as logger from '../utils/logger.ts';
 import { getImageDimensions, uploadMedia } from './media.ts';
 
 /**
+ * Retry configuration for Matrix operations
+ */
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+/**
+ * Check if an error is retryable (network/timeout errors)
+ */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    const code = (error as Error & { code?: string }).code;
+    return (
+      code === 'ESOCKETTIMEDOUT' ||
+      code === 'ETIMEDOUT' ||
+      code === 'ECONNRESET' ||
+      code === 'ECONNREFUSED' ||
+      message.includes('timeout') ||
+      message.includes('socket hang up') ||
+      message.includes('network')
+    );
+  }
+  return false;
+}
+
+/**
+ * Execute an async operation with exponential backoff retry
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableError(error) || attempt === RETRY_CONFIG.maxAttempts) {
+        throw error;
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(
+        RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1) +
+          Math.random() * 500,
+        RETRY_CONFIG.maxDelayMs,
+      );
+
+      logger.warn(
+        `${operationName} failed (attempt ${attempt}/${RETRY_CONFIG.maxAttempts}), ` +
+          `retrying in ${Math.round(delay)}ms: ${error}`,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
+/**
  * Create and initialize Matrix client
  */
 export function createMatrixClient(config: Config): MatrixClient {
@@ -104,7 +171,7 @@ export async function getRoomInfo(
 }
 
 /**
- * Send text message to room
+ * Send text message to room with retry logic
  */
 export async function sendTextMessage(
   client: MatrixClient,
@@ -112,7 +179,10 @@ export async function sendTextMessage(
   text: string,
 ): Promise<string> {
   try {
-    const eventId = await client.sendText(roomId, text);
+    const eventId = await withRetry(
+      () => client.sendText(roomId, text),
+      `sendTextMessage to ${roomId}`,
+    );
     return eventId;
   } catch (error) {
     logger.error(`Failed to send message to ${roomId}`, error);
@@ -121,7 +191,7 @@ export async function sendTextMessage(
 }
 
 /**
- * Send reaction to a message
+ * Send reaction to a message with retry logic
  */
 export async function sendReaction(
   client: MatrixClient,
@@ -130,13 +200,17 @@ export async function sendReaction(
   emoji: string,
 ): Promise<void> {
   try {
-    await client.sendEvent(roomId, 'm.reaction', {
-      'm.relates_to': {
-        rel_type: 'm.annotation',
-        event_id: eventId,
-        key: emoji,
-      },
-    });
+    await withRetry(
+      () =>
+        client.sendEvent(roomId, 'm.reaction', {
+          'm.relates_to': {
+            rel_type: 'm.annotation',
+            event_id: eventId,
+            key: emoji,
+          },
+        }),
+      `sendReaction to ${eventId}`,
+    );
   } catch (error) {
     logger.error(`Failed to send reaction to ${eventId}`, error);
     throw error;
@@ -229,8 +303,11 @@ export async function sendImage(
       content.url = uploadResult.mxcUrl;
     }
 
-    // Send the image message
-    const eventId = await client.sendMessage(roomId, content);
+    // Send the image message with retry
+    const eventId = await withRetry(
+      () => client.sendMessage(roomId, content),
+      `sendImage ${image.filename} to ${roomId}`,
+    );
     logger.success(`Sent image: ${image.filename} (${eventId})`);
 
     return eventId;
