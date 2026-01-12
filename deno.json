@@ -1,6 +1,6 @@
 {
   "name": "@tijs/roci-matrix",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "exports": "./src/main.ts",
   "nodeModulesDir": "auto",
   "tasks": {

@@ -97,10 +97,11 @@ const roomInfoCache = new Map<
 >();
 
 /**
- * Room info cache TTL (5 minutes)
- * Room membership rarely changes, so we can cache aggressively
+ * Room info cache TTL (24 hours)
+ * Room membership rarely changes, and we typically always use the same room
+ * Stale cache is used as fallback on errors, so long TTL is safe
  */
-const ROOM_INFO_CACHE_TTL = 5 * 60 * 1000;
+const ROOM_INFO_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 /**
  * Create and initialize Matrix client
