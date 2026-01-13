@@ -44,6 +44,10 @@ export async function handleReaction(
     }
 
     const targetEventId = relatesTo.event_id;
+    if (!targetEventId) {
+      logger.debug('Reaction missing target event ID');
+      return;
+    }
     const reaction = relatesTo.key || '';
 
     // Generate correlation ID for request tracing

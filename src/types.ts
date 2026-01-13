@@ -26,6 +26,16 @@ export interface Config {
 // ============ IPC Messages ============
 
 /**
+ * Context for reply messages
+ */
+export interface ReplyContext {
+  event_id: string;
+  sender: string;
+  content: string;
+  timestamp: string;
+}
+
+/**
  * Message from Matrix → Agent
  */
 export interface UserMessage {
@@ -36,6 +46,7 @@ export interface UserMessage {
   content: string;
   image?: ImageAttachment;
   attachments?: FileAttachment[];
+  reply_to?: ReplyContext;
   timestamp: string;
 }
 
@@ -205,11 +216,15 @@ export interface MatrixMessageEvent {
       };
       v: string;
     };
-    // Reaction specific
+    // Reaction and reply specific
     'm.relates_to'?: {
-      rel_type: string;
-      event_id: string;
+      rel_type?: string; // For reactions
+      event_id?: string; // For reactions
       key?: string; // Reaction emoji
+      'm.in_reply_to'?: {
+        // For replies
+        event_id: string;
+      };
     };
   };
   origin_server_ts: number;

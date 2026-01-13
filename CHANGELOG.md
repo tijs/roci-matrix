@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-13
+
+### Added
+
+- **Matrix reply context support** - When user replies to a specific message,
+  include the original message context so the agent understands what's being
+  referenced
+  - New `ReplyContext` interface with event_id, sender, content, timestamp
+  - `getReplyContext()` function fetches original message via `client.getEvent()`
+  - `stripReplyFallback()` removes quoted text from reply body
+  - `reply_to` field added to `UserMessage` IPC type
+  - Extended `MatrixMessageEvent` type with `m.in_reply_to` support
+  - Unit tests for fallback stripping
+
 ## [1.2.6] - 2026-01-12
 
 ### Changed

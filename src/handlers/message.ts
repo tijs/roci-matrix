@@ -4,11 +4,37 @@
 
 import { MatrixClient } from 'matrix-bot-sdk';
 import { generateCorrelationId } from '@roci/shared';
-import type { AgentResponse, Config, MatrixMessageEvent } from '../types.ts';
+import type { AgentResponse, Config, MatrixMessageEvent, ReplyContext } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
 import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
 import { validateAuthorization } from '../utils/auth.ts';
 import * as logger from '../utils/logger.ts';
+import { stripReplyFallback } from '../utils/reply.ts';
+
+/**
+ * Fetch reply context for a message that's replying to another message.
+ */
+async function getReplyContext(
+  client: MatrixClient,
+  roomId: string,
+  event: MatrixMessageEvent,
+): Promise<ReplyContext | undefined> {
+  const inReplyTo = event.content['m.relates_to']?.['m.in_reply_to'];
+  if (!inReplyTo?.event_id) return undefined;
+
+  try {
+    const originalEvent = await client.getEvent(roomId, inReplyTo.event_id);
+    return {
+      event_id: originalEvent.event_id,
+      sender: originalEvent.sender,
+      content: originalEvent.content?.body || '[no content]',
+      timestamp: new Date(originalEvent.origin_server_ts).toISOString(),
+    };
+  } catch (error) {
+    logger.warn(`Failed to fetch reply context: ${error}`);
+    return undefined;
+  }
+}
 
 /**
  * Handle text message event
@@ -36,14 +62,19 @@ export async function handleTextMessage(
       return;
     }
 
-    // Extract message content
-    const content = event.content.body;
+    // Check if this is a reply and get context
+    const replyContext = await getReplyContext(client, roomId, event);
+
+    // Extract message content (strip fallback if replying)
+    const content = replyContext ? stripReplyFallback(event.content.body) : event.content.body;
 
     // Generate correlation ID for request tracing
     const correlationId = generateCorrelationId();
 
     logger.info(
-      `📨 [${correlationId}] Message from ${event.sender}: ${content.slice(0, 100)}`,
+      `📨 [${correlationId}] Message from ${event.sender}${replyContext ? ' (reply)' : ''}: ${
+        content.slice(0, 100)
+      }`,
     );
 
     // Forward to agent via IPC
@@ -53,6 +84,7 @@ export async function handleTextMessage(
       user_id: event.sender,
       room_id: roomId,
       content: content,
+      reply_to: replyContext,
       timestamp: new Date(event.origin_server_ts).toISOString(),
       correlationId,
     };
