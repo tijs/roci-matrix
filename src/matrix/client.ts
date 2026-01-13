@@ -116,10 +116,12 @@ export function createMatrixClient(config: Config): MatrixClient {
     );
 
     // E2E encryption storage (Rust SDK)
-    // StoreType.Sled = 1 (file-based key-value store)
+    // StoreType.Sqlite = 0 (file-based SQLite store)
+    // Note: Sled was removed in newer SDK versions, only Sqlite available
     const cryptoStorage = new RustSdkCryptoStorageProvider(
       `${config.storeDir}/crypto-sled`,
-      1, // StoreType.Sled
+      // deno-lint-ignore no-explicit-any
+      0 as any,
     );
 
     // Create client

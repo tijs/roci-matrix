@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-01-14
+
+### Fixed
+
+- **Fix type compatibility with Element's SDK fork** - Update code to match
+  Element's matrix-bot-sdk API changes
+  - Cast `getEvent()` response to raw object for consistent property access
+  - Use Sqlite store type (0) instead of Sled (removed in newer SDK versions)
+  - Add lint ignore for const enum workaround with isolatedModules
+
 ## [1.3.1] - 2026-01-14
 
 ### Fixed

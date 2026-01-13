@@ -23,7 +23,13 @@ async function getReplyContext(
   if (!inReplyTo?.event_id) return undefined;
 
   try {
-    const originalEvent = await client.getEvent(roomId, inReplyTo.event_id);
+    // Cast to raw object since SDK wrapper types differ between versions
+    const originalEvent = (await client.getEvent(roomId, inReplyTo.event_id)) as unknown as {
+      event_id: string;
+      sender: string;
+      content?: { body?: string };
+      origin_server_ts: number;
+    };
     return {
       event_id: originalEvent.event_id,
       sender: originalEvent.sender,
