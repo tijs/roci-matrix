@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-01-14
+
+### Fixed
+
+- **Fix image/file uploads broken by authenticated media** - Switch from
+  `matrix-bot-sdk` to Element's fork `@vector-im/matrix-bot-sdk@0.7.1-element.15`
+  which supports Matrix 1.11 authenticated media endpoints
+  - Old SDK used deprecated `/_matrix/media/v3/download/` endpoints
+  - New SDK uses authenticated `/_matrix/client/v1/media/download/` endpoints
+  - Fixes M_FORBIDDEN errors when downloading encrypted media
+
 ## [1.3.0] - 2026-01-13
 
 ### Added
