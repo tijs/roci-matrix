@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-01-14
+
+### Changed
+
+- **Add timestamps to all log output** - All logger functions now include ISO
+  timestamps for easier debugging of timing issues
+  - Format: `2026-01-14T10:30:45.123Z ℹ️  Message`
+  - Helps track time spent in each processing step
+
 ## [1.3.2] - 2026-01-14
 
 ### Fixed
