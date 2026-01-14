@@ -9,7 +9,7 @@ with the roci-agent service via Unix socket IPC.
 
 **Role in Architecture:**
 
-- Receives encrypted messages from authorized user (`@tijs:envs.net`)
+- Receives encrypted messages from authorized user (`@tijs:hamster.farm`)
 - Forwards to roci-agent service via `/var/run/roci/agent.sock`
 - Sends AI responses back to Matrix
 - Receives proactive messages from roci-agent via `/var/run/roci/matrix.sock`
@@ -153,8 +153,8 @@ length + JSON payload):
 {
   type: 'user_message',
   message_id: 'event_id',
-  user_id: '@tijs:envs.net',
-  room_id: '!room:envs.net',
+  user_id: '@tijs:hamster.farm',
+  room_id: '!room:hamster.farm',
   content: 'Message text',
   timestamp: '2025-12-25T16:00:00Z'
 }
@@ -171,8 +171,8 @@ length + JSON payload):
 // Agent → Matrix (proactive message from watch rotation)
 {
   type: 'proactive_message',
-  user_id: '@tijs:envs.net',
-  room_id: '!room:envs.net',
+  user_id: '@tijs:hamster.farm',
+  room_id: '!room:hamster.farm',
   content: 'Proactive insight...',
   trigger: 'watch_rotation',
   timestamp: '2025-12-25T16:30:00Z'
@@ -247,10 +247,10 @@ roci-matrix/
 
 ```bash
 # Required
-MATRIX_HOMESERVER=https://matrix.envs.net
-MATRIX_USER_ID=@roci:envs.net
+MATRIX_HOMESERVER=https://hamster.farm
+MATRIX_USER_ID=@roci:hamster.farm
 MATRIX_DEVICE_ID=...         # From login.ts
-AUTHORIZED_USER=@tijs:envs.net
+AUTHORIZED_USER=@tijs:hamster.farm
 
 # IPC
 IPC_SOCKET_PATH=/var/run/roci/agent.sock

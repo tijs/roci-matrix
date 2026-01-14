@@ -45,7 +45,7 @@ describe('stripReplyFallback', () => {
 
   it('should handle real Matrix reply format', () => {
     // Real Matrix reply format includes the sender and message
-    const text = '> <@tijs:envs.net> What time is the meeting?\n\nIt starts at 3pm';
+    const text = '> <@tijs:hamster.farm> What time is the meeting?\n\nIt starts at 3pm';
     assertEquals(stripReplyFallback(text), 'It starts at 3pm');
   });
 });

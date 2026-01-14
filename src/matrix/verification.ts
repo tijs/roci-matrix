@@ -5,7 +5,7 @@
  * Unlike matrix-nio (Python), matrix-bot-sdk doesn't expose high-level SAS verification APIs.
  *
  * To verify the bot device:
- * 1. Log in to Element as @roci:envs.net (the bot account)
+ * 1. Log in to Element as @roci:hamster.farm (the bot account)
  * 2. Go to Settings → Security & Privacy
  * 3. Find the "Roci Bot (Deno)" device in the device list
  * 4. Click "Verify" and complete the emoji/decimal verification

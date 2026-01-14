@@ -36,7 +36,7 @@ async function login() {
     // Login with password
     console.log('⏳ Logging in...');
 
-    // Extract localpart from full user ID (@roci:envs.net -> roci)
+    // Extract localpart from full user ID (@roci:hamster.farm -> roci)
     const username = userId.startsWith('@') ? userId.split(':')[0].substring(1) : userId;
 
     const response = await client.doRequest(
