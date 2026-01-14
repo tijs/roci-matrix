@@ -202,9 +202,8 @@ jq 'select(.indexed == false)' metadata.jsonl
       correlationId,
     };
 
-    // Natural delay before starting typing
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await setTyping(client, roomId, true);
+    // Fire-and-forget typing indicator - don't block message processing
+    setTimeout(() => void setTyping(client, roomId, true), 500);
 
     logger.info('Sending image metadata to agent via IPC...');
 
@@ -214,14 +213,14 @@ jq 'select(.indexed == false)' metadata.jsonl
       // Note: temp file cleanup is handled by agent after reading
       logger.info('Received response from agent');
 
-      await setTyping(client, roomId, false); // Stop before sending
+      void setTyping(client, roomId, false); // Stop before sending (non-blocking)
 
       // Handle agent response
       await handleAgentResponse(client, roomId, event.event_id, response);
 
       logger.success('Image processed successfully');
     } finally {
-      await setTyping(client, roomId, false); // Cleanup
+      void setTyping(client, roomId, false); // Cleanup (non-blocking)
     }
   } catch (error) {
     logger.error('Error handling image message', error);

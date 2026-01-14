@@ -95,16 +95,16 @@ export async function handleTextMessage(
       correlationId,
     };
 
-    // Natural delay before starting typing
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await setTyping(client, roomId, true);
+    // Fire-and-forget typing indicator - don't block message processing
+    // If homeserver is slow/unresponsive, we don't want to delay the agent
+    setTimeout(() => void setTyping(client, roomId, true), 500);
 
     try {
       const response = await agentClient.sendMessage(ipcMessage);
-      await setTyping(client, roomId, false); // Stop before sending
+      void setTyping(client, roomId, false); // Stop before sending (non-blocking)
       await handleAgentResponse(client, roomId, event.event_id, response);
     } finally {
-      await setTyping(client, roomId, false); // Cleanup
+      void setTyping(client, roomId, false); // Cleanup (non-blocking)
     }
   } catch (error) {
     logger.error('Error handling text message', error);
