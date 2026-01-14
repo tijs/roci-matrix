@@ -2,6 +2,15 @@
  * Main entry point for roci-matrix service
  */
 
+import * as https from 'node:https';
+import * as http from 'node:http';
+
+// Increase connection pool size to prevent sync long-polls from blocking
+// other requests (typing indicators, sends, etc.)
+// Default is 5 per host, which can cause queueing issues
+https.globalAgent.maxSockets = 25;
+http.globalAgent.maxSockets = 25;
+
 import { loadConfig } from './config.ts';
 import { createMatrixClient, sendImage, sendTextMessage, startClient } from './matrix/client.ts';
 import { setupEncryptionListeners, verifyEncryption } from './matrix/crypto.ts';

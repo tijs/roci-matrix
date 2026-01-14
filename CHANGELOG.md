@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-01-14
+
+### Changed
+
+- **Increase HTTP connection pool size** - Raise max sockets from 5 to 25 per
+  host to prevent sync long-polls from blocking other requests
+  - Matrix sync uses long-polling which holds connections open
+  - With only 5 sockets, other requests (typing, sends) could queue behind sync
+  - 25 sockets provides headroom for concurrent operations
+
 ## [1.3.4] - 2026-01-14
 
 ### Fixed
