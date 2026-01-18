@@ -6,7 +6,7 @@ import { MatrixClient } from 'matrix-bot-sdk';
 import { generateCorrelationId } from '@roci/shared';
 import type { AgentResponse, Config, MatrixMessageEvent, ReplyContext } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
-import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
+import { getRoomInfo, sendReaction, sendTextMessage } from '../matrix/client.ts';
 import { validateAuthorization } from '../utils/auth.ts';
 import * as logger from '../utils/logger.ts';
 import { stripReplyFallback } from '../utils/reply.ts';
@@ -95,17 +95,8 @@ export async function handleTextMessage(
       correlationId,
     };
 
-    // Fire-and-forget typing indicator - don't block message processing
-    // If homeserver is slow/unresponsive, we don't want to delay the agent
-    setTimeout(() => void setTyping(client, roomId, true), 500);
-
-    try {
-      const response = await agentClient.sendMessage(ipcMessage);
-      void setTyping(client, roomId, false); // Stop before sending (non-blocking)
-      await handleAgentResponse(client, roomId, event.event_id, response);
-    } finally {
-      void setTyping(client, roomId, false); // Cleanup (non-blocking)
-    }
+    const response = await agentClient.sendMessage(ipcMessage);
+    await handleAgentResponse(client, roomId, event.event_id, response);
   } catch (error) {
     logger.error('Error handling text message', error);
 

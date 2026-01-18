@@ -6,7 +6,7 @@ import { MatrixClient } from 'matrix-bot-sdk';
 import { generateCorrelationId } from '@roci/shared';
 import type { AgentResponse, Config, EncryptedMediaInfo, MatrixMessageEvent } from '../types.ts';
 import { AgentIPCClient } from '../ipc/agent-client.ts';
-import { getRoomInfo, sendReaction, sendTextMessage, setTyping } from '../matrix/client.ts';
+import { getRoomInfo, sendReaction, sendTextMessage } from '../matrix/client.ts';
 import { downloadMedia } from '../matrix/media.ts';
 import { validateAuthorization } from '../utils/auth.ts';
 import { getExtensionFromMimeType } from '../utils/media-validation.ts';
@@ -225,25 +225,14 @@ jq 'select(.indexed == false)' metadata.jsonl
 
     logger.debug(`IPC message prepared, data size: ${media.data.length} chars`);
 
-    // Fire-and-forget typing indicator - don't block message processing
-    setTimeout(() => void setTyping(client, roomId, true), 500);
-
     logger.info('Sending file to agent via IPC...');
 
-    try {
-      const response = await agentClient.sendMessage(ipcMessage);
+    const response = await agentClient.sendMessage(ipcMessage);
+    logger.info('Received response from agent');
 
-      logger.info('Received response from agent');
-
-      void setTyping(client, roomId, false); // Stop before sending (non-blocking)
-
-      // Handle agent response
-      await handleAgentResponse(client, roomId, event.event_id, response);
-
-      logger.success('File processed successfully');
-    } finally {
-      void setTyping(client, roomId, false); // Cleanup (non-blocking)
-    }
+    // Handle agent response
+    await handleAgentResponse(client, roomId, event.event_id, response);
+    logger.success('File processed successfully');
   } catch (error) {
     logger.error('Error handling file message', error);
 

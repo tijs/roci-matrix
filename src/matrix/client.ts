@@ -294,27 +294,6 @@ export async function sendReaction(
 }
 
 /**
- * Set typing indicator for room
- * Errors are logged but not thrown (typing is best-effort)
- */
-export async function setTyping(
-  client: MatrixClient,
-  roomId: string,
-  typing: boolean,
-  timeout?: number,
-): Promise<void> {
-  try {
-    await client.setTyping(roomId, typing, timeout);
-    logger.debug(
-      `Typing indicator ${typing ? 'started' : 'stopped'} for ${roomId}`,
-    );
-  } catch (error) {
-    // Log but don't throw - typing failures shouldn't block messages
-    logger.warn(`Failed to set typing indicator (typing=${typing}): ${error}`);
-  }
-}
-
-/**
  * Get user ID from client
  */
 export async function getUserId(client: MatrixClient): Promise<string> {
